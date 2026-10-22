@@ -2,15 +2,15 @@
 
 <img src="file:///C:/Users/USER/Documents/GitHub/markdoc/data/markdoc.png" width="142" height="142" />
 
-Electron + Tiptap 기반의 페이지형 Markdown 위지윅(WYSIWYG) 편집기입니다.
+<img src="file:///C:/Users/USER/Documents/GitHub/markdoc/screenshot.png" width="643" height="361" />
 
-화면상에 보이는 모습 그대로 출력이나 결과물이 나옵니다.
+Markdown WYSIWYG editor powered by Electron + Tiptap.
 
-GPT-6.1 Sol을 이용해서 만들어졌습니다.
+Made with GPT-6.1 Sol.
 
-버그 덩어리 입니다.
+Bunch of bugs.
 
-# 폰트 라이선스
+# Font License
 
 ```
 Copyright (c) 2021, Kil Hyung-jin (https://github.com/orioncactus/pretendard),
