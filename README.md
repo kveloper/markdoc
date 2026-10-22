@@ -1,8 +1,8 @@
 # Markdoc
 
-<img src="file:///C:/Users/USER/Documents/GitHub/markdoc/data/markdoc.png" width="142" height="142" />
+<img src="./data/markdoc.png" width="142" height="142" />
 
-<img src="file:///C:/Users/USER/Documents/GitHub/markdoc/screenshot.png" width="643" height="361" />
+<img src="./screenshot.png" width="643" height="361" />
 
 Markdown WYSIWYG editor powered by Electron + Tiptap.
 
