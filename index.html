@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' file:; img-src 'self' file: https: data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Markdoc</title>
+</head>
+<body>
+  <header id="toolbar" aria-label="문서 서식 도구 모음">
+    <button data-action="explorer" aria-label="파일 탐색기 열기/닫기">파일 탐색기</button>
+    <span class="separator"></span>
+    <button data-action="h1">H1</button><button data-action="h2">H2</button><button data-action="h3">H3</button><button data-action="h4">H4</button><button data-action="h5">H5</button><button data-action="h6">H6</button>
+    <button data-action="paragraph">본문</button>
+    <button data-action="bold" title="볼드 Ctrl+B"><b>B</b></button>
+    <button data-action="italic" title="이탤릭 Ctrl+I"><i>I</i></button>
+    <button data-action="underline" title="밑줄 Ctrl+U"><u>U</u></button>
+    <button data-action="strike" title="취소선"><s>S</s></button>
+    <button data-action="table">Table</button>
+    <span id="table-tools" hidden><button data-action="addRowAfter">행 추가</button><button data-action="addColumnAfter">열 추가</button><button data-action="deleteRow">행 삭제</button><button data-action="deleteColumn">열 삭제</button><button data-action="deleteTable">표 삭제</button></span>
+    <button data-action="image" title="이미지 삽입" aria-label="이미지 삽입">🖼️</button>
+    <button data-action="codeblock">Code Bloack</button><button data-action="code">Inline Code</button>
+    <button data-action="bulletList">불릿</button><button data-action="orderedList">번호 목록</button><button data-action="taskList">체크 목록</button>
+    <button data-action="blockquote">인용</button><button data-action="horizontalRule">구분선</button><button data-action="link">링크</button>
+    <button data-action="undo">되돌리기</button><button data-action="redo">다시 실행</button>
+    <label>용지 <select id="paper"><option>A4</option><option>Letter</option></select></label>
+    <button data-action="typography">글자 크기·행간</button>
+  </header>
+  <main id="workspace">
+    <aside id="explorer" aria-label="파일 탐색기">
+      <div class="explorer-actions"><button id="choose-folder">폴더 열기</button><button id="refresh-files">새로고침</button></div>
+      <div id="folder-name"></div><div id="file-tree" role="tree"></div>
+    </aside>
+    <section id="document-viewport" aria-label="페이지 문서 편집창">
+      <div id="page-stack"><div id="page-sheets" aria-hidden="true"></div><div id="document-surface"><div id="editor"></div></div><div id="page-masks" aria-hidden="true"></div></div>
+    </section>
+  </main>
+  <footer><span id="status" role="status">준비</span><span id="statistics" aria-live="polite">글자 0 (공백 포함) · 단어 0 · 1쪽</span></footer>
+  <dialog id="typography-dialog"><form method="dialog"><h2>글자 크기 및 행간</h2><div id="typography-fields"></div><p>글자 크기는 pt 단위입니다. 문서 전체와 인쇄에 함께 적용합니다.</p><div class="dialog-actions"><button value="cancel" formnovalidate>취소</button><button value="apply">적용</button></div></form></dialog>
+  <dialog id="table-dialog"><form method="dialog"><h2>표 삽입</h2><label>행 <input id="table-rows" type="number" value="3" min="1" max="50" required></label><label>열 <input id="table-cols" type="number" value="3" min="1" max="12" required></label><div class="dialog-actions"><button value="cancel" formnovalidate>취소</button><button value="insert">삽입</button></div></form></dialog>
+  <dialog id="link-dialog"><form method="dialog"><h2>링크</h2><label>주소 <input id="link-url" type="url" placeholder="https://example.com" required></label><div class="dialog-actions"><button value="cancel" formnovalidate>취소</button><button value="insert">적용</button></div></form></dialog>
+  <script type="module" src="/src/renderer.js"></script>
+</body>
+</html>
