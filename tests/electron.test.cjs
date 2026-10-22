@@ -58,7 +58,7 @@ test('WYSIWYG pages, Markdown roundtrip, explorer, counts, typography, image res
   const image=path.join(folder,'image.png');await fs.writeFile(image,Buffer.from(png,'base64'));
   await open('이미지 테스트');await page.locator('.tiptap').click();await page.keyboard.press('Control+End');await page.keyboard.press('Enter');
   await app.evaluate(({dialog},file)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[file]});},image);
-  await click('image');await expect(page.locator('.image-block img')).toBeVisible();
+  await click('image');await page.locator('#image-dialog button[value="absolute"]').click();await expect(page.locator('.image-block img')).toBeVisible();
   const figure=page.locator('.image-block');await figure.hover();
   const before=await figure.boundingBox(),handle=await page.locator('.image-resize-handle').boundingBox();
   await page.mouse.move(handle.x+6,handle.y+6);await page.mouse.down();await page.mouse.move(handle.x-90,handle.y-40,{steps:8});await page.mouse.up();

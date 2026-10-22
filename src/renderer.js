@@ -1,4 +1,4 @@
-import { Editor } from '@tiptap/core';
+import { Editor, Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { TableKit } from '@tiptap/extension-table';
 import TaskList from '@tiptap/extension-task-list';
@@ -16,7 +16,7 @@ const api = window.markdoc;
 let prefs = { language: 'ko', paper: 'A4', autosave: true, explorerVisible: true, typography: { body: 12, h1: 26, h2: 22, h3: 19, h4: 17, h5: 15, h6: 13, lineHeight: 1.7 } };
 const t = (key, values = {}) => (translations[prefs.language]?.[key] || key).replace(/\{(\w+)\}/g, (match, name) => values[name] ?? match);
 const uiText = [], uiAttributes = [];
-for (const region of document.querySelectorAll('#toolbar,#explorer,#typography-dialog,#table-dialog,#link-dialog')) {
+for (const region of document.querySelectorAll('#toolbar,#explorer,#typography-dialog,#table-dialog,#link-dialog,#image-dialog')) {
   const walker = document.createTreeWalker(region, NodeFilter.SHOW_TEXT);
   let node;
   while ((node = walker.nextNode())) {
@@ -44,10 +44,14 @@ const sheets = document.querySelector('#page-sheets');
 const pageMasks = document.querySelector('#page-masks');
 const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced', emDelimiter: '*', bulletListMarker: '-' });
 turndown.use(gfm);
+turndown.addRule('front-matter', {
+  filter: node => node.nodeName === 'PRE' && node.getAttribute('data-frontmatter') === 'true',
+  replacement: (_content, node) => `\n\n${node.textContent}\n\n`,
+});
 turndown.addRule('underline', { filter: ['u', 'ins'], replacement: content => `<u>${content}</u>` });
 turndown.addRule('image-dimensions', { filter: 'img', replacement: (_content, node) => {
   const escape = text => String(text || '').replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
-  return '\n\n<img ' + ['src', 'alt', 'title', 'width', 'height'].filter(key => node.hasAttribute(key)).map(key => `${key}="${escape(node.getAttribute(key))}"`).join(' ') + ' />\n\n';
+  return '\n\n<img ' + ['src', 'alt', 'title', 'width', 'height'].filter(key => node.hasAttribute(key)).map(key => `${key}="${escape(key === 'src' ? node.getAttribute('data-markdown-src') || node.getAttribute(key) : node.getAttribute(key))}"`).join(' ') + ' />\n\n';
 } });
 turndown.addRule('tasks', { filter: node => node.nodeName === 'LI' && node.getAttribute('data-type') === 'taskItem', replacement: (content, node) => `- [${node.getAttribute('data-checked') === 'true' ? 'x' : ' '}] ${content.trim()}\n` });
 const markdown = () => turndown.turndown(editor.getHTML());
@@ -84,6 +88,16 @@ const editor = new Editor({
   element: document.querySelector('#editor'),
   extensions: [
     StarterKit.configure({ link: { openOnClick: false } }),
+    Extension.create({
+      name: 'frontMatter',
+      addGlobalAttributes() {
+        return [{ types: ['codeBlock'], attributes: { frontMatter: {
+          default: false,
+          parseHTML: element => element.getAttribute('data-frontmatter') === 'true',
+          renderHTML: attributes => attributes.frontMatter ? { 'data-frontmatter': 'true' } : {},
+        } } }];
+      },
+    }),
     TableKit.configure({ table: { resizable: false } }), TaskList, TaskItem.configure({ nested: true }),
     resizableImage(() => prefs.paper, t), createPagination(() => paperMetrics(prefs.paper), drawPages),
   ],
@@ -92,7 +106,7 @@ const editor = new Editor({
     attributes: { class: 'document-body', 'aria-label': '위지윅 문서', spellcheck: 'false' },
     handlePaste(view, event) {
       const text = event.clipboardData?.getData('text/plain');
-      if (!event.clipboardData?.getData('text/html') && text && /(^#{1,6} |\*\*.+\*\*|^```|^\|.+\|)/m.test(text)) {
+      if (!event.clipboardData?.getData('text/html') && text && (/^\uFEFF?---[ \t]*\r?\n/.test(text) || /(^#{1,6} |\*\*.+\*\*|^```|^\|.+\|)/m.test(text))) {
         event.preventDefault(); editor.commands.insertContent(renderMarkdown(text, baseURL)); return true;
       }
       return false;
@@ -180,11 +194,14 @@ async function command(name) {
     else if (name === 'table') {
       if (await modal('#table-dialog') === 'insert') editor.chain().focus().insertTable({ rows: Number(document.querySelector('#table-rows').value), cols: Number(document.querySelector('#table-cols').value), withHeaderRow: true }).run();
     } else if (name === 'image') {
-      const image = await api.action('pick-image');
+      document.querySelector('#image-relative').value = '';
+      const choice = await modal('#image-dialog');
+      if (!['absolute', 'relative'].includes(choice)) return;
+      const image = await api.action(choice === 'absolute' ? 'pick-image' : 'relative-image', { path: document.querySelector('#image-relative').value });
       if (image) {
         const page = paperMetrics(prefs.paper), ratio = image.width / image.height;
         const width = Math.min(image.width, page.width - page.margin * 2, (page.height - page.margin * 2 - 12) * ratio);
-        editor.chain().focus().setImage({ src: image.src, width: Math.round(width), height: Math.round(width / ratio) }).run();
+        editor.chain().focus().setImage({ src: image.src, markdownSrc: image.markdownSrc || null, width: Math.round(width), height: Math.round(width / ratio) }).run();
       }
     } else if (name === 'link') {
       document.querySelector('#link-url').value = editor.getAttributes('link').href || '';

@@ -6,6 +6,7 @@ export function resizableImage(getPaper, translate = value => value) {
     addAttributes() {
       return {
         ...this.parent?.(),
+        markdownSrc: { default: null, parseHTML: element => element.getAttribute('data-markdown-src'), renderHTML: attributes => attributes.markdownSrc ? { 'data-markdown-src': attributes.markdownSrc } : {} },
         width: { default: null, parseHTML: element => element.getAttribute('width') },
         height: { default: null, parseHTML: element => element.getAttribute('height') },
       };

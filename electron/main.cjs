@@ -228,6 +228,14 @@ ipcMain.handle('document:action', (event, name, payload) => {
       return open(file);
     }
     if (['pdf', 'preview-print', 'print'].includes(name)) return printDocument(name, payload?.html);
+    if (name === 'relative-image') {
+      if (!document.path) throw new Error(t('상대경로를 사용하려면 먼저 문서를 저장하세요.'));
+      const relative = typeof payload?.path === 'string' ? payload.path.trim().replaceAll('\\', '/') : '';
+      if (!relative || /^(?:[a-z][a-z\d+.-]*:|\/)/i.test(relative)) throw new Error(t('문서 위치를 기준으로 상대경로를 입력하세요.'));
+      const file = path.resolve(path.dirname(document.path), relative), image = nativeImage.createFromPath(file);
+      if (image.isEmpty()) throw new Error(t('이 이미지를 읽을 수 없습니다. PNG/JPEG/GIF/BMP/WebP/ICO를 선택하세요.'));
+      return { src: pathToFileURL(file).href, markdownSrc: relative, ...image.getSize() };
+    }
     if (name === 'pick-image') {
       const result = await dialog.showOpenDialog(window, { title: t('이미지 삽입'), properties: ['openFile'], filters: [{ name: t('이미지'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'ico'] }] });
       if (result.canceled) return null;

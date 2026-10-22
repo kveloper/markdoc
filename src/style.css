@@ -14,6 +14,7 @@ button,select,input{font:inherit}button,select{background:var(--chrome);color:va
 footer{display:flex;justify-content:space-between;gap:15px;padding:7px 12px;border-top:1px solid var(--border);font-size:12px;flex:none}#status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#statistics{white-space:nowrap}
 dialog{border:1px solid var(--border);border-radius:9px;padding:24px;max-width:460px;background:var(--chrome);color:var(--chrome-text)}dialog::backdrop{background:#0006}dialog label{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:8px 0}dialog input{width:115px;padding:6px}#link-url{width:280px}.dialog-actions{display:flex;justify-content:end;gap:8px;margin-top:18px}#typography-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 25px}dialog p{font-size:12px;color:var(--chrome-text)}
 .document-body pre,.document-body pre code{font-family:CodeFace,monospace;font-weight:400;font-synthesis:none;font-variant-ligatures:none}
+#image-relative{box-sizing:border-box;width:100%}
 #page-masks{position:absolute;inset:0;pointer-events:none;user-select:none;z-index:2}
 .page-margin-mask{position:absolute;left:0;width:var(--page-width);background:linear-gradient(to bottom,#fff 0 var(--page-margin),var(--desk) var(--page-margin) calc(var(--page-margin) + 24px),#fff calc(var(--page-margin) + 24px) 100%)}
 .page-number{z-index:3}

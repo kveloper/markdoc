@@ -1,0 +1,42 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises'), os = require('node:os'), path = require('node:path');
+const { _electron } = require('playwright');
+const { expect } = require('@playwright/test');
+test('image source dialog translates fully and preserves relative paths through save/reopen', { timeout: 30000 }, async () => {
+ const folder = await fs.mkdtemp(path.join(os.tmpdir(), 'markdoc-images-'));
+ const env = { ...process.env, MARKDOC_TEST_USER_DATA: folder, MARKDOC_TEST_HIDDEN: '1' }; delete env.ELECTRON_RUN_AS_NODE;
+ let app;
+ try {
+  app = await _electron.launch({ args: [path.resolve(__dirname, '..')], env });
+  app.process().stdout.on('data', () => {}); app.process().stderr.on('data', () => {});
+  const page = await app.firstWindow(); await page.waitForSelector('.tiptap');
+  const menu = async label => app.evaluate(({ Menu }, label) => Menu.getApplicationMenu().items[0].submenu.items.find(item => item.label === label).click(), label);
+  const language = async label => app.evaluate(({ Menu }, label) => Menu.getApplicationMenu().items.find(i => ['설정', 'Settings'].includes(i.label)).submenu.items.find(i => ['언어', 'Language'].includes(i.label)).submenu.items.find(i => i.label === label).click(), label);
+  const file = path.join(folder, 'document.md'); await fs.writeFile(file, '# Image test');
+  const png = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 100; c.height = 50; return c.toDataURL().split(',')[1]; });
+  await fs.mkdir(path.join(folder, 'images')); await fs.writeFile(path.join(folder, 'images', '사진.png'), Buffer.from(png, 'base64'));
+  await app.evaluate(({ dialog }, file) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] }); dialog.showMessageBox = async () => ({ response: 1 }); dialog.showErrorBox = () => {}; }, file);
+  await menu('열기…'); await expect(page.locator('.tiptap h1')).toHaveText('Image test');
+  await page.locator('[data-action="image"]').click();
+  await expect(page.locator('#image-dialog h2')).toHaveText('이미지 삽입');
+  await language('English');
+  await expect(page.locator('#image-dialog h2')).toHaveText('Insert Image');
+  assert.doesNotMatch(await page.locator('#image-dialog').innerText(), /[가-힣]/);
+  await expect(page.locator('#image-dialog button[value="absolute"]')).toHaveText('Choose File with Absolute Path…');
+  await expect(page.locator('#image-dialog button[value="relative"]')).toHaveText('Insert with Relative Path');
+  await language('한국어');
+  await expect(page.locator('#image-dialog label')).toHaveText('상대경로');
+  await page.locator('#image-relative').fill('./images/사진.png');
+  await page.locator('#image-dialog button[value="relative"]').click();
+  await expect(page.locator('.image-block img')).toBeVisible();
+  assert.equal(await page.locator('.image-block img').evaluate(n => n.naturalWidth), 100);
+  await menu('저장');
+  await expect.poll(() => fs.readFile(file, 'utf8')).toContain('src="./images/사진.png"');
+  await menu('열기…'); await expect(page.locator('.image-block img')).toBeVisible();
+  await page.locator('.tiptap').click(); await page.keyboard.press('Control+End'); await page.keyboard.press('Enter'); await page.keyboard.type('saved again');
+  await menu('저장'); await expect.poll(() => fs.readFile(file, 'utf8')).toContain('saved again');
+  assert.ok((await fs.readFile(file, 'utf8')).includes('src="./images/사진.png"'));
+  await assert.rejects(page.evaluate(() => window.markdoc.action('relative-image', { path: 'C:/images/test.png' })), /상대경로/);
+ } finally { if (app) await app.close(); await fs.rm(folder, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
+});

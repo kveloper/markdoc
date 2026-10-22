@@ -1,5 +1,12 @@
 {
   "en": {
+    "절대경로로 파일 선택…": "Choose File with Absolute Path…",
+    "또는 문서 위치를 기준으로 상대경로를 입력하세요.": "Or enter a path relative to the document location.",
+    "상대경로": "Relative Path",
+    "상대경로를 사용하려면 먼저 문서를 저장하세요. 입력한 경로는 저장 시 유지됩니다.": "Save the document first to use a relative path. The entered path is preserved when saving.",
+    "상대경로로 삽입": "Insert with Relative Path",
+    "상대경로를 사용하려면 먼저 문서를 저장하세요.": "Save the document first to use a relative path.",
+    "문서 위치를 기준으로 상대경로를 입력하세요.": "Enter a path relative to the document location.",
     "파일": "File", "새 문서": "New document", "열기…": "Open…", "저장": "Save", "다른 이름으로 저장…": "Save As…", "최근 연 파일": "Recent Files", "최근 파일 없음": "No recent files",
     "PDF로 저장…": "Export PDF…", "인쇄 미리보기": "Print Preview", "인쇄…": "Print…", "인쇄 용지": "Paper Size", "종료": "Quit", "편집": "Edit", "실행 취소": "Undo", "되돌리기": "Undo", "다시 실행": "Redo",
     "잘라내기": "Cut", "복사": "Copy", "붙여넣기": "Paste", "전체 선택": "Select All", "볼드": "Bold", "이탤릭": "Italic", "취소선": "Strikethrough", "밑줄": "Underline", "인라인 코드": "Inline Code", "이미지 삽입…": "Insert Image…",
