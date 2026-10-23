@@ -33,7 +33,7 @@ test('code and quote decorations stop at page margins; code uses embedded D2Codi
      const offset = (point.y * image.getSize().width + point.x) * 4;
      return Array.from(image.getBitmap().subarray(offset, offset + 3)).reverse();
     }, { base64: png.toString('base64'), point });
-    assert.deepEqual(pixel, index === 1 ? (dark ? [18, 18, 18] : [229, 231, 235]) : [255, 255, 255], `${selector}: page margin / gap color`);
+    assert.deepEqual(pixel, dark ? (index === 1 ? [18, 18, 18] : [36, 36, 36]) : index === 1 ? [229, 231, 235] : [255, 255, 255], `${selector}: page margin / gap color`);
    }
   };
   const code = '```python\n' + Array.from({ length: 130 }, (_, i) => `print("line ${i} / 한글")`).join('\n') + '\n```\n\nAfter the code block.';

@@ -18,3 +18,16 @@ dialog{border:1px solid var(--border);border-radius:9px;padding:24px;max-width:4
 #page-masks{position:absolute;inset:0;pointer-events:none;user-select:none;z-index:2}
 .page-margin-mask{position:absolute;left:0;width:var(--page-width);background:linear-gradient(to bottom,#fff 0 var(--page-margin),var(--desk) var(--page-margin) calc(var(--page-margin) + 24px),#fff calc(var(--page-margin) + 24px) 100%)}
 .page-number{z-index:3}
+#toolbar [data-action=h1]{font-size:22px}#toolbar [data-action=h2]{font-size:20px}#toolbar [data-action=h3]{font-size:18px}#toolbar [data-action=h4]{font-size:16px}#toolbar [data-action=h5]{font-size:14px}#toolbar [data-action=h6]{font-size:12px}
+#menubar{display:flex;flex:none;gap:2px;padding:3px 12px 0;background:var(--chrome);color:var(--chrome-text)}
+#menubar button{border:0;background:transparent;padding:5px 9px;border-radius:3px}
+#menubar button:hover,#menubar button:focus-visible{background:var(--desk);filter:none}
+#toolbar{background:var(--chrome)}
+:root{--paper:#fff;--ink:#000}
+:root[data-theme=dark]{--paper:#242424;--ink:#fff}
+.page-sheet{background:var(--paper)}
+#document-surface,.document-body{color:var(--ink);color-scheme:inherit;caret-color:var(--ink)}
+.page-margin-mask{background:linear-gradient(to bottom,var(--paper) 0 var(--page-margin),var(--desk) var(--page-margin) calc(var(--page-margin) + 24px),var(--paper) calc(var(--page-margin) + 24px) 100%)}
+:root[data-theme=dark] .document-body pre,:root[data-theme=dark] .document-body code,:root[data-theme=dark] .document-body th{background:#252525}
+:root[data-theme=dark] .document-body a{color:#9ecbff}
+:root[data-theme=dark] .selectedCell{background:#29486e}

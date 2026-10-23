@@ -76,9 +76,28 @@ test('WYSIWYG pages, Markdown roundtrip, explorer, counts, typography, image res
    const margin=Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-margin'));
    return [...document.querySelectorAll('.tiptap .image-block,.tiptap table')].map(n=>{const r=n.getBoundingClientRect(),offset=r.top-root.top;let y=((offset%(height+24))+(height+24))%(height+24);if(y>height+23)y=0;return {tag:n.tagName,y,height:r.height,capacity:height-2*margin,fits:y+r.height<=height-2*margin+2,offset,breaks:[...document.querySelectorAll('.page-break')].map(b=>({height:b.style.height,top:b.getBoundingClientRect().top-root.top}))};});
   });assert.deepEqual(errors,[]);assert.ok(containment.every(item=>item.fits),JSON.stringify(containment));
-  await menu('설정','다크 모드');assert.equal(await page.locator('.page-sheet').first().evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(255, 255, 255)');
+  await menu('설정','다크 모드');assert.equal(await page.locator('.page-sheet').first().evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(36, 36, 36)');
+  assert.equal(await page.locator('.tiptap').evaluate(n=>getComputedStyle(n).color),'rgb(255, 255, 255)');
+  await app.evaluate(({ app, shell, Menu }) => {
+   global.markdocPrinted = null;
+   shell.openPath = async file => { global.markdocPrinted = file; return ''; };
+   app.on('browser-window-created', (_event, window) => {
+    const original = window.webContents.printToPDF.bind(window.webContents);
+    window.webContents.printToPDF = async options => {
+     global.markdocPrintColors = await window.webContents.executeJavaScript(`({background:getComputedStyle(document.body).backgroundColor,color:getComputedStyle(document.querySelector('article')).color})`);
+     return original(options);
+    };
+   });
+   if (Menu.getApplicationMenu().items[0].submenu.items.some(item => item.label === '인쇄 미리보기')) throw new Error('Old preview menu remains');
+  });
   const pdf=path.join(folder,'result.pdf');await app.evaluate(({dialog},file)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:file});},pdf);
   await menu('파일','PDF로 저장…');await expect.poll(async()=>fs.readFile(pdf).then(b=>b.subarray(0,4).toString()).catch(()=>''),{timeout:20000}).toBe('%PDF');
+  assert.deepEqual(await app.evaluate(() => global.markdocPrintColors), {background:'rgb(255, 255, 255)',color:'rgb(0, 0, 0)'});
+  await menu('파일','인쇄…');
+  await expect.poll(() => app.evaluate(() => global.markdocPrinted), {timeout:20000}).toBeTruthy();
+  const printed = await app.evaluate(() => global.markdocPrinted);
+  assert.equal((await fs.readFile(printed)).subarray(0,4).toString(), '%PDF');
+  await fs.rm(path.dirname(printed), {recursive:true,force:true});
   const saved=path.join(folder,'saved.md');await app.evaluate(({dialog},file)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:file});},saved);
   await menu('파일','다른 이름으로 저장…');await expect.poll(async()=>fs.readFile(saved,'utf8').catch(()=>'' )).toContain('<img');
   await fs.mkdir(path.join(ROOT,'test-results'),{recursive:true});await page.screenshot({path:path.join(ROOT,'test-results','wysiwyg.png')});

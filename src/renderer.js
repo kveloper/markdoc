@@ -16,7 +16,7 @@ const api = window.markdoc;
 let prefs = { language: 'ko', paper: 'A4', autosave: true, explorerVisible: true, typography: { body: 12, h1: 26, h2: 22, h3: 19, h4: 17, h5: 15, h6: 13, lineHeight: 1.7 } };
 const t = (key, values = {}) => (translations[prefs.language]?.[key] || key).replace(/\{(\w+)\}/g, (match, name) => values[name] ?? match);
 const uiText = [], uiAttributes = [];
-for (const region of document.querySelectorAll('#toolbar,#explorer,#typography-dialog,#table-dialog,#link-dialog,#image-dialog')) {
+for (const region of document.querySelectorAll('#menubar,#toolbar,#explorer,#typography-dialog,#table-dialog,#link-dialog,#image-dialog')) {
   const walker = document.createTreeWalker(region, NodeFilter.SHOW_TEXT);
   let node;
   while ((node = walker.nextNode())) {
@@ -39,6 +39,23 @@ function translateUI() {
 let baseURL = new URL('../', location.href).href;
 let loading = false, received = false, hasEdits = false, pageCount = 1, explorerRoot, currentPath;
 const status = document.querySelector('#status');
+for (const button of document.querySelectorAll('[data-menu]')) {
+  button.addEventListener('click', () => {
+    const rect = button.getBoundingClientRect();
+    api.action('show-menu', { index: Number(button.dataset.menu), x: Math.round(rect.left), y: Math.round(rect.bottom) });
+  });
+  button.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    const index = (Number(button.dataset.menu) + (event.key === 'ArrowRight' ? 1 : 2)) % 3;
+    document.querySelector(`[data-menu="${index}"]`).focus();
+  });
+}
+document.addEventListener('keydown', event => {
+  if (event.key === 'F10' && !event.shiftKey) {
+    event.preventDefault(); document.querySelector('[data-menu="0"]').focus();
+  }
+});
 const surface = document.querySelector('#document-surface');
 const sheets = document.querySelector('#page-sheets');
 const pageMasks = document.querySelector('#page-masks');
@@ -206,7 +223,7 @@ async function command(name) {
     } else if (name === 'link') {
       document.querySelector('#link-url').value = editor.getAttributes('link').href || '';
       if (await modal('#link-dialog') === 'insert') editor.chain().focus().extendMarkRange('link').setLink({ href: document.querySelector('#link-url').value }).run();
-    } else if (['pdf', 'preview-print', 'print'].includes(name)) {
+    } else if (['pdf', 'print'].includes(name)) {
       const copy = editor.view.dom.cloneNode(true);
       copy.querySelectorAll('.page-break,.image-resize-handle').forEach(node => node.remove());
       await api.action(name, { html: copy.innerHTML });

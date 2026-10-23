@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, nativeImage, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -79,7 +79,6 @@ function updatePreference(name, value) {
   prefs = preferences({ ...prefs, [name]: value });
   window.webContents.send('preferences:update', prefs); buildMenu();
   title();
-  for (const printWindow of printWindows) if (printWindow.markdocPrint) configurePrintMenu(printWindow);
   persist().catch(error => notify(t('설정 저장 실패: {message}', { message: error.message })));
 }
 function buildMenu() {
@@ -96,10 +95,15 @@ function buildMenu() {
       { label: '열기…', accelerator: 'CmdOrCtrl+O', click: action(() => open()) },
       { label: '저장', accelerator: 'CmdOrCtrl+S', click: action(() => save()) },
       { label: '다른 이름으로 저장…', accelerator: 'CmdOrCtrl+Shift+S', click: action(() => save(true)) },
-      { label: '최근 연 파일', submenu: prefs.recent.length ? prefs.recent.map(file => ({ label: file, click: action(() => open(file)) })) : [{ label: '최근 파일 없음', enabled: false }] },
+      { label: '최근 연 파일', submenu: [
+        ...(prefs.recent.length ? prefs.recent.map(file => ({ label: file, click: action(() => open(file)) })) : [{ label: '최근 파일 없음', enabled: false }]),
+        { type: 'separator' },
+        { label: '최근 연 파일 목록 지우기', enabled: prefs.recent.length > 0, click: action(async () => {
+          prefs.recent = []; buildMenu(); await persist();
+        }) },
+      ] },
       { type: 'separator' },
       { label: 'PDF로 저장…', click: command('pdf') },
-      { label: '인쇄 미리보기', click: command('preview-print') },
       { label: '인쇄…', accelerator: 'CmdOrCtrl+P', click: command('print') },
       { label: '인쇄 용지', submenu: ['A4', 'Letter'].map(paper => ({ label: paper, type: 'radio', checked: prefs.paper === paper, click: () => updatePreference('paper', paper) })) },
       { type: 'separator' }, { label: '종료', click: () => window.close() },
@@ -119,10 +123,7 @@ function buildMenu() {
       { label: '언어', submenu: [{ label: '한국어', type: 'radio', checked: prefs.language === 'ko', click: () => updatePreference('language', 'ko') }, { label: 'English', type: 'radio', checked: prefs.language === 'en', click: () => updatePreference('language', 'en') }] },
     ] },
   ])));
-}
-function configurePrintMenu(target) {
-  target.setTitle(`${t('인쇄 미리보기')} — ${prefs.paper}`);
-  target.setMenu(Menu.buildFromTemplate(localizeMenu([{ label: '파일', submenu: [{ label: '인쇄…', accelerator: 'CmdOrCtrl+P', click: () => target.markdocPrint().catch(error => dialog.showErrorBox(t('인쇄 실패'), error.message)) }, { label: '닫기', click: () => target.close() }] }])));
+  window?.setMenuBarVisibility(false);
 }
 function secureWindow(target) {
   target.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -139,7 +140,7 @@ async function printDocument(mode, markup) {
   }
   const fontURL = name => pathToFileURL(path.join(ROOT, 'data', 'fonts', name)).href;
   const css = await fs.readFile(path.join(ROOT, 'dist', 'print.css'), 'utf8');
-  const page = `<!doctype html><html lang="${prefs.language}"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src file:; img-src file: https: data:; script-src 'none'; object-src 'none'; base-uri 'none'"><title>Markdoc ${t('인쇄 미리보기')}</title><style>
+  const page = `<!doctype html><html lang="${prefs.language}"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src file:; img-src file: https: data:; script-src 'none'; object-src 'none'; base-uri 'none'"><title>Markdoc ${t('인쇄 문서')}</title><style>
     @font-face{font-family:PrintFace;src:url('${fontURL('Pretendard-Medium.otf')}');font-weight:400}
     @font-face{font-family:PrintFace;src:url('${fontURL('Pretendard-Bold.otf')}');font-weight:700}
     @font-face{font-family:CodeFace;src:url('${fontURL('D2Coding-Ver1.4.0-20261003.ttf')}');font-weight:400;font-style:normal}
@@ -147,22 +148,25 @@ async function printDocument(mode, markup) {
   </style></head><body><article class="markdown-body">${markup}</article></body></html>`;
   const temporary = path.join(app.getPath('userData'), `print-${Date.now()}-${Math.random().toString(16).slice(2)}.html`);
   await fs.writeFile(temporary, page, 'utf8');
-  const printWindow = new BrowserWindow({ show: false, width: 960, height: 850, title: `${t('인쇄 미리보기')} — ${prefs.paper}`, icon: path.join(ROOT, 'data', 'icon.ico'), webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } });
+  const printWindow = new BrowserWindow({ show: false, width: 960, height: 850, title: `${t('인쇄 문서')} — ${prefs.paper}`, icon: path.join(ROOT, 'data', 'icon.ico'), webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } });
   printWindows.add(printWindow); secureWindow(printWindow);
   printWindow.on('closed', () => { printWindows.delete(printWindow); fs.rm(temporary, { force: true }).catch(() => {}); });
   const options = { printBackground: true, pageSize: prefs.paper };
-  const print = () => new Promise((resolve, reject) => printWindow.webContents.print(options, (success, reason) => success || /cancel/i.test(reason) ? resolve() : reject(new Error(reason))));
   try {
     await printWindow.loadFile(temporary);
     await printWindow.webContents.executeJavaScript(`Promise.all([document.fonts.ready, ...Array.from(document.images, image => image.complete ? Promise.resolve() : new Promise(resolve => { image.onload = image.onerror = resolve; setTimeout(resolve, 8000); }))])`);
     if (mode === 'pdf') {
       await fs.writeFile(target, await printWindow.webContents.printToPDF({ ...options, preferCSSPageSize: true }));
       notify(t('PDF 저장 완료: {path}', { path: target })); printWindow.destroy();
-    } else if (mode === 'preview-print') {
-      printWindow.markdocPrint = print;
-      configurePrintMenu(printWindow);
-      if (!process.env.MARKDOC_TEST_HIDDEN) printWindow.show();
-    } else { await print(); printWindow.destroy(); }
+    } else {
+      const folder = await fs.mkdtemp(path.join(app.getPath('temp'), 'markdoc-print-'));
+      const file = path.join(folder, 'Markdoc.pdf');
+      await fs.writeFile(file, await printWindow.webContents.printToPDF({ ...options, preferCSSPageSize: true }));
+      printWindow.destroy();
+      const error = await shell.openPath(file);
+      if (error) throw new Error(t('PDF 인쇄 앱을 열 수 없습니다: {message}', { message: error }));
+      notify(t('기본 PDF 앱에서 문서를 확인한 뒤 인쇄하세요.'));
+    }
   } catch (error) { printWindow.destroy(); throw error; }
 }
 function isMain(event) {
@@ -199,6 +203,12 @@ ipcMain.on('document:autosave', (event, text) => {
 });
 ipcMain.handle('document:action', (event, name, payload) => {
   if (!isMain(event)) throw new Error(t('잘못된 요청입니다.'));
+  if (name === 'show-menu') {
+    if (!Number.isInteger(payload?.index) || payload.index < 0 || payload.index > 2) return;
+    const submenu = Menu.getApplicationMenu()?.items[payload.index]?.submenu;
+    submenu?.popup({ window, x: Math.max(0, Math.round(Number(payload.x) || 0)), y: Math.max(0, Math.round(Number(payload.y) || 0)) });
+    return;
+  }
   if (name === 'list-directory') return (async () => {
     const target = await explorerPath(typeof payload?.path === 'string' ? payload.path : null);
     const entries = await fs.readdir(target, { withFileTypes: true });
@@ -211,8 +221,7 @@ ipcMain.handle('document:action', (event, name, payload) => {
     if (payload?.language) prefs.language = payload.language;
     prefs = preferences(prefs);
     window.webContents.send('preferences:update', prefs); buildMenu(); title();
-    for (const printWindow of printWindows) if (printWindow.markdocPrint) configurePrintMenu(printWindow);
-    return persist();
+      return persist();
   }
   return enqueue(async () => {
     if (name === 'choose-folder') {
@@ -227,7 +236,7 @@ ipcMain.handle('document:action', (event, name, payload) => {
       if (!/\.md$/i.test(file)) throw new Error(t('.md 파일만 열 수 있습니다.'));
       return open(file);
     }
-    if (['pdf', 'preview-print', 'print'].includes(name)) return printDocument(name, payload?.html);
+    if (['pdf', 'print'].includes(name)) return printDocument(name, payload?.html);
     if (name === 'relative-image') {
       if (!document.path) throw new Error(t('상대경로를 사용하려면 먼저 문서를 저장하세요.'));
       const relative = typeof payload?.path === 'string' ? payload.path.trim().replaceAll('\\', '/') : '';
@@ -254,6 +263,7 @@ async function createWindow() {
   window = new BrowserWindow({ width: 1100, height: 800, minWidth: 560, minHeight: 360, backgroundColor: prefs.dark ? '#121212' : '#F5F5F5', icon: path.join(ROOT, 'data', 'icon.ico'), show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, backgroundThrottling: false } });
   secureWindow(window); buildMenu(); title();
+  window.setMenuBarVisibility(false);
   window.once('ready-to-show', () => { if (!process.env.MARKDOC_TEST_HIDDEN) window.show(); });
   window.on('close', event => {
     if (closing) return;

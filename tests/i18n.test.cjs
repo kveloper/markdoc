@@ -9,7 +9,7 @@ test('folder emoji and live Korean/English UI switching preserve the document an
  const root = path.join(folder, 'files'); await fs.mkdir(path.join(root, '한글 폴더'), { recursive: true });
  await fs.writeFile(path.join(root, '한글 폴더', '문서.md'), '# 파일 이름 유지');
  const userData = path.join(folder, 'settings'); await fs.mkdir(userData);
- await fs.writeFile(path.join(userData, 'settings.json'), JSON.stringify({ explorerRoot: root }));
+ await fs.writeFile(path.join(userData, 'settings.json'), JSON.stringify({ explorerRoot: root, recent: [path.join(root, '한글 폴더', '문서.md')] }));
  const env = { ...process.env, MARKDOC_TEST_USER_DATA: userData, MARKDOC_TEST_HIDDEN: '1' }; delete env.ELECTRON_RUN_AS_NODE;
  let app;
  const launch = async () => {
@@ -25,6 +25,15 @@ test('folder emoji and live Korean/English UI switching preserve the document an
  }, label);
  try {
   let page = await launch();
+  assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMenuBarVisible()), false);
+  const chromeColors = () => page.evaluate(() => ['#menubar', '#toolbar'].map(selector => getComputedStyle(document.querySelector(selector)).backgroundColor));
+  assert.deepEqual(await chromeColors(), ['rgb(245, 245, 245)', 'rgb(245, 245, 245)']);
+  await app.evaluate(({ Menu }) => Menu.getApplicationMenu().items.find(i => i.label === '설정').submenu.items.find(i => i.label === '다크 모드').click());
+  await expect.poll(chromeColors).toEqual(['rgb(34, 34, 34)', 'rgb(34, 34, 34)']);
+  await app.evaluate(({ Menu }) => Menu.getApplicationMenu().items.find(i => i.label === '설정').submenu.items.find(i => i.label === '다크 모드').click());
+  await app.evaluate(({ Menu }) => { Menu.getApplicationMenu().items[0].submenu.popup = options => { global.markdocPopup = { x: options.x, y: options.y }; }; });
+  await page.locator('[data-menu="0"]').click();
+  await expect.poll(() => app.evaluate(() => global.markdocPopup)).toBeTruthy();
   await expect(page.locator('.directory-name')).toHaveText('📁 한글 폴더');
   await expect(page.locator('#folder-name')).toHaveText('📁 files');
   await page.locator('.directory-name').click();
@@ -33,7 +42,16 @@ test('folder emoji and live Korean/English UI switching preserve the document an
   const before = await page.evaluate(() => window.markdoc.initial());
   await language('English');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(page.locator('[data-action="explorer"]')).toHaveText('File Explorer');
+  await expect(page.locator('#menubar button')).toHaveText(['File', 'Edit', 'Settings']);
+  assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMenuBarVisible()), false);
+  await expect(page.locator('[data-action="explorer"]')).toHaveText('📂');
+  await expect(page.locator('[data-action="explorer"]')).toHaveAttribute('aria-label', 'Toggle File Explorer');
+  await expect(page.locator('[data-action="link"]')).toHaveText('🔗');
+  await expect(page.locator('[data-action="link"]')).toHaveAttribute('title', 'Link');
+  await expect(page.locator('[data-action="taskList"]')).toHaveText('✅');
+  await expect(page.locator('[data-action="taskList"]')).toHaveAttribute('aria-label', 'Checklist');
+  const sizes = await page.locator('[data-action^="h"]').evaluateAll(nodes => nodes.filter(n => /^h[1-6]$/.test(n.dataset.action)).map(n => parseFloat(getComputedStyle(n).fontSize)));
+  assert.equal(sizes.length, 6); assert.ok(sizes.every((size, i) => i === 0 || size < sizes[i - 1]));
   await expect(page.locator('#choose-folder')).toHaveText('Open Folder');
   await expect(page.locator('#statistics')).toContainText('Characters');
   await expect(page.locator('#statistics')).toContainText('Words');
@@ -42,6 +60,15 @@ test('folder emoji and live Korean/English UI switching preserve the document an
   await expect(page.locator('.file-name')).toHaveText('문서.md');
   const after = await page.evaluate(() => window.markdoc.initial());
   assert.equal(after.text, before.text); assert.equal(after.dirty, before.dirty);
+  await app.evaluate(({ Menu }) => {
+   const recent = Menu.getApplicationMenu().items[0].submenu.items.find(item => item.label === 'Recent Files').submenu;
+   const clear = recent.items.at(-1);
+   if (clear.label !== 'Clear Recent Files' || !clear.enabled) throw new Error('Missing clear recent files command');
+   clear.click();
+  });
+  await expect.poll(async () => JSON.parse(await fs.readFile(path.join(userData, 'settings.json'), 'utf8')).recent).toEqual([]);
+  assert.deepEqual(await app.evaluate(({ Menu }) => Menu.getApplicationMenu().items[0].submenu.items.find(item => item.label === 'Recent Files').submenu.items.filter(item => item.type !== 'separator').map(item => ({ label: item.label, enabled: item.enabled }))), [{ label: 'No recent files', enabled: false }, { label: 'Clear Recent Files', enabled: false }]);
+  assert.equal((await page.evaluate(() => window.markdoc.initial())).text, before.text);
   assert.deepEqual(await app.evaluate(({ Menu }) => Menu.getApplicationMenu().items.map(item => item.label)), ['File', 'Edit', 'Settings']);
   await page.locator('[data-action="typography"]').click();
   await expect(page.locator('#typography-dialog h2')).toHaveText('Font Sizes and Line Spacing');

@@ -1,5 +1,10 @@
 {
   "en": {
+    "최근 연 파일 목록 지우기": "Clear Recent Files",
+    "메뉴 모음": "Menu Bar",
+    "인쇄 문서": "Print Document",
+    "PDF 인쇄 앱을 열 수 없습니다: {message}": "Cannot open the PDF printing app: {message}",
+    "기본 PDF 앱에서 문서를 확인한 뒤 인쇄하세요.": "Review the document in your default PDF app, then print it.",
     "절대경로로 파일 선택…": "Choose File with Absolute Path…",
     "또는 문서 위치를 기준으로 상대경로를 입력하세요.": "Or enter a path relative to the document location.",
     "상대경로": "Relative Path",

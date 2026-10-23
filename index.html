@@ -7,8 +7,13 @@
   <title>Markdoc</title>
 </head>
 <body>
+  <nav id="menubar" role="menubar" aria-label="메뉴 모음">
+    <button role="menuitem" aria-haspopup="menu" data-menu="0">파일</button>
+    <button role="menuitem" aria-haspopup="menu" data-menu="1">편집</button>
+    <button role="menuitem" aria-haspopup="menu" data-menu="2">설정</button>
+  </nav>
   <header id="toolbar" aria-label="문서 서식 도구 모음">
-    <button data-action="explorer" aria-label="파일 탐색기 열기/닫기">파일 탐색기</button>
+    <button data-action="explorer" aria-label="파일 탐색기 열기/닫기" title="파일 탐색기 열기/닫기">📂</button>
     <span class="separator"></span>
     <button data-action="h1">H1</button><button data-action="h2">H2</button><button data-action="h3">H3</button><button data-action="h4">H4</button><button data-action="h5">H5</button><button data-action="h6">H6</button>
     <button data-action="paragraph">본문</button>
@@ -20,8 +25,8 @@
     <span id="table-tools" hidden><button data-action="addRowAfter">행 추가</button><button data-action="addColumnAfter">열 추가</button><button data-action="deleteRow">행 삭제</button><button data-action="deleteColumn">열 삭제</button><button data-action="deleteTable">표 삭제</button></span>
     <button data-action="image" title="이미지 삽입" aria-label="이미지 삽입">🖼️</button>
     <button data-action="codeblock">Code Bloack</button><button data-action="code">Inline Code</button>
-    <button data-action="bulletList">불릿</button><button data-action="orderedList">번호 목록</button><button data-action="taskList">체크 목록</button>
-    <button data-action="blockquote">인용</button><button data-action="horizontalRule">구분선</button><button data-action="link">링크</button>
+    <button data-action="bulletList">불릿</button><button data-action="orderedList">번호 목록</button><button data-action="taskList" aria-label="체크 목록" title="체크 목록">✅</button>
+    <button data-action="blockquote">인용</button><button data-action="horizontalRule">구분선</button><button data-action="link" aria-label="링크" title="링크">🔗</button>
     <button data-action="undo">되돌리기</button><button data-action="redo">다시 실행</button>
     <label>용지 <select id="paper"><option>A4</option><option>Letter</option></select></label>
     <button data-action="typography">글자 크기·행간</button>
