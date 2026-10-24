@@ -1,0 +1,86 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises'), os = require('node:os'), path = require('node:path');
+const { _electron } = require('playwright');
+const { expect } = require('@playwright/test');
+
+test('equation palette, validation, editing and Markdown round trip', { timeout: 60000 }, async () => {
+  const folder = await fs.mkdtemp(path.join(os.tmpdir(), 'markdoc-math-'));
+  const env = { ...process.env, MARKDOC_TEST_USER_DATA: folder, MARKDOC_TEST_HIDDEN: '1' }; delete env.ELECTRON_RUN_AS_NODE;
+  let app;
+  try {
+    app = await _electron.launch({ args: [path.resolve(__dirname, '..')], env });
+    app.process().stdout.on('data', () => {}); app.process().stderr.on('data', () => {});
+    await app.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1 }); });
+    const page = await app.firstWindow(); await page.waitForSelector('.tiptap');
+    page.on('pageerror', error => console.error(error.message));
+    await page.locator('.tiptap').fill('Before ');
+    await page.locator('.tiptap').press('End');
+    await page.locator('[data-action="math"]').click();
+    await expect(page.locator('#math-insert')).toBeDisabled();
+    await page.locator('#math-elements button').filter({ hasText: /^분수$/ }).click();
+    await expect(page.locator('#math-tex')).toHaveValue('\\frac{a}{b}');
+    await expect(page.locator('#math-preview math-field')).toHaveJSProperty('value', '\\frac{a}{b}');
+    await page.locator('#math-tex').press('Control+z');
+    await expect(page.locator('#math-tex')).toHaveValue('');
+    await page.locator('#math-tex').press('Control+y');
+    await expect(page.locator('#math-tex')).toHaveValue('\\frac{a}{b}');
+    await page.locator('#math-display').uncheck();
+    await page.locator('#math-tex').press('Control+z');
+    await expect(page.locator('#math-display')).toBeChecked();
+    const visual = page.locator('#math-preview math-field');
+    await visual.click();
+    await visual.press('Control+a');
+    await visual.pressSequentially('a+b');
+    await expect(page.locator('#math-tex')).toHaveValue('a+b');
+    await visual.press('Control+z');
+    await expect(page.locator('#math-tex')).not.toHaveValue('a+b');
+    await visual.press('Control+y');
+    await expect(page.locator('#math-tex')).toHaveValue('a+b');
+    await page.locator('#math-tex').fill('\\frac{');
+    await expect(page.locator('#math-insert')).toBeDisabled();
+    await page.locator('#math-tex').fill('\\frac{x_1}{2}');
+    await page.locator('#math-insert').click();
+    await expect(page.locator('.tiptap .math-formula .katex')).toHaveCount(1);
+    await page.locator('.tiptap .math-formula').click();
+    const inline = page.locator('.tiptap .math-formula math-field');
+    await expect(inline).toHaveJSProperty('value', '\\frac{x_1}{2}');
+    await inline.press('Control+a');
+    await inline.pressSequentially('x+1');
+    await expect(inline).toHaveJSProperty('value', 'x+1');
+    await inline.press('Control+z');
+    await expect(inline).not.toHaveJSProperty('value', 'x+1');
+    await inline.press('Control+y');
+    await expect(inline).toHaveJSProperty('value', 'x+1');
+    await inline.press('Enter');
+    await expect(page.locator('.tiptap math-field')).toHaveCount(0);
+    await expect(page.locator('.tiptap .math-formula')).toHaveCount(1);
+    await expect(page.locator('.tiptap .math-formula')).toHaveAttribute('data-tex', 'x+1');
+    const file = path.join(folder, 'equations.md');
+    await app.evaluate(({ dialog, Menu }, file) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });
+      Menu.getApplicationMenu().items[0].submenu.items.find(item => item.label === '저장').click();
+    }, file);
+    await expect.poll(() => fs.readFile(file, 'utf8').catch(() => '')).toContain('$$\nx+1\n$$');
+    const source = 'Inline $x_{i}^{2}$ and `plain $x$`.\n\n$$\n\\begin{pmatrix}a & b \\\\ c & d\\end{pmatrix}\n$$\n\n```tex\n$x$\n```';
+    await fs.writeFile(file, source);
+    await app.evaluate(({ dialog, Menu }, file) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] });
+      Menu.getApplicationMenu().items[0].submenu.items.find(item => item.label === '열기…').click();
+    }, file);
+    await expect(page.locator('.tiptap .math-formula')).toHaveCount(2);
+    await expect(page.locator('.tiptap .math-formula .katex')).toHaveCount(2);
+    await expect(page.locator('.tiptap code').first()).toHaveText('plain $x$');
+    assert.equal((await page.locator('.tiptap pre code').textContent()).trim(), '$x$');
+    await page.locator('[data-action="math"]').click();
+    await page.locator('#math-tex').fill('x^2');
+    await page.locator('#math-dialog button[value="cancel"]').click();
+    await expect(page.locator('.tiptap .math-formula')).toHaveCount(2);
+    const pdf = path.join(folder, 'equations.pdf');
+    await app.evaluate(({ dialog, Menu }, file) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });
+      Menu.getApplicationMenu().items[0].submenu.items.find(item => item.label === 'PDF로 저장…').click();
+    }, pdf);
+    await expect.poll(() => fs.readFile(pdf).then(buffer => buffer.toString('latin1')).catch(() => ''), { timeout: 15000 }).toContain('KaTeX');
+  } finally { if (app) await app.close(); await fs.rm(folder, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
+});

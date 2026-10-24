@@ -9,6 +9,7 @@ import { gfm } from 'turndown-plugin-gfm';
 import { renderMarkdown } from './markdown';
 import { createPagination, paperMetrics, PAGE_GAP } from './pagination';
 import { resizableImage } from './image';
+import { MathFormula, setupMathDialog, renderFormula } from './math';
 import './style.css';
 import translations from '../locales.json';
 
@@ -16,7 +17,7 @@ const api = window.markdoc;
 let prefs = { language: 'ko', paper: 'A4', autosave: true, explorerVisible: true, typography: { body: 12, h1: 26, h2: 22, h3: 19, h4: 17, h5: 15, h6: 13, lineHeight: 1.7 } };
 const t = (key, values = {}) => (translations[prefs.language]?.[key] || key).replace(/\{(\w+)\}/g, (match, name) => values[name] ?? match);
 const uiText = [], uiAttributes = [];
-for (const region of document.querySelectorAll('#menubar,#toolbar,#explorer,#typography-dialog,#table-dialog,#link-dialog,#image-dialog')) {
+for (const region of document.querySelectorAll('#menubar,#toolbar,#explorer,#typography-dialog,#table-dialog,#link-dialog,#image-dialog,#math-dialog')) {
   const walker = document.createTreeWalker(region, NodeFilter.SHOW_TEXT);
   let node;
   while ((node = walker.nextNode())) {
@@ -61,6 +62,10 @@ const sheets = document.querySelector('#page-sheets');
 const pageMasks = document.querySelector('#page-masks');
 const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced', emDelimiter: '*', bulletListMarker: '-' });
 turndown.use(gfm);
+turndown.addRule('math-formula', {
+  filter: node => node.getAttribute('data-type') === 'mathFormula',
+  replacement: (_content, node) => node.getAttribute('data-display') === 'false' ? `$${node.getAttribute('data-tex')}$` : `\n\n$$\n${node.getAttribute('data-tex')}\n$$\n\n`,
+});
 turndown.addRule('front-matter', {
   filter: node => node.nodeName === 'PRE' && node.getAttribute('data-frontmatter') === 'true',
   replacement: (_content, node) => `\n\n${node.textContent}\n\n`,
@@ -104,6 +109,7 @@ function drawPages(count) {
 const editor = new Editor({
   element: document.querySelector('#editor'),
   extensions: [
+    MathFormula,
     StarterKit.configure({ link: { openOnClick: false } }),
     Extension.create({
       name: 'frontMatter',
@@ -123,7 +129,7 @@ const editor = new Editor({
     attributes: { class: 'document-body', 'aria-label': '위지윅 문서', spellcheck: 'false' },
     handlePaste(view, event) {
       const text = event.clipboardData?.getData('text/plain');
-      if (!event.clipboardData?.getData('text/html') && text && (/^\uFEFF?---[ \t]*\r?\n/.test(text) || /(^#{1,6} |\*\*.+\*\*|^```|^\|.+\|)/m.test(text))) {
+      if (!event.clipboardData?.getData('text/html') && text && (/^\uFEFF?---[ \t]*\r?\n/.test(text) || /(^#{1,6} |\*\*.+\*\*|^```|^\|.+\||^\$\$|\$[^$\n]+\$)/m.test(text))) {
         event.preventDefault(); editor.commands.insertContent(renderMarkdown(text, baseURL)); return true;
       }
       return false;
@@ -136,6 +142,7 @@ const editor = new Editor({
   onUpdate() { if (!loading) { hasEdits = true; api.changed(markdown()); updateStatistics(); } },
   onSelectionUpdate() { updateToolbar(); },
 });
+const mathDialog = setupMathDialog(editor, modal, t);
 setInterval(() => { if (prefs.autosave && hasEdits && !editor.view.composing) api.autosave(markdown()); }, 30000);
 
 function paginate() { editor.view.dom.dispatchEvent(new Event('paginate')); }
@@ -208,6 +215,7 @@ async function command(name) {
     else if (['addRowAfter', 'addColumnAfter', 'deleteRow', 'deleteColumn', 'deleteTable'].includes(name)) editor.chain().focus()[name]().run();
     else if (name === 'explorer') await api.action('set-preferences', { explorerVisible: !prefs.explorerVisible });
     else if (name === 'typography') await typographyDialog();
+    else if (name === 'math') await mathDialog();
     else if (name === 'table') {
       if (await modal('#table-dialog') === 'insert') editor.chain().focus().insertTable({ rows: Number(document.querySelector('#table-rows').value), cols: Number(document.querySelector('#table-cols').value), withHeaderRow: true }).run();
     } else if (name === 'image') {
@@ -225,6 +233,9 @@ async function command(name) {
       if (await modal('#link-dialog') === 'insert') editor.chain().focus().extendMarkRange('link').setLink({ href: document.querySelector('#link-url').value }).run();
     } else if (['pdf', 'print'].includes(name)) {
       const copy = editor.view.dom.cloneNode(true);
+      for (const formula of copy.querySelectorAll('.math-formula')) {
+        try { renderFormula(formula, formula.dataset.tex, formula.dataset.display !== 'false'); } catch { formula.textContent = formula.dataset.tex; }
+      }
       copy.querySelectorAll('.page-break,.image-resize-handle').forEach(node => node.remove());
       await api.action(name, { html: copy.innerHTML });
     }

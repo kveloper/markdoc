@@ -10,6 +10,21 @@ Made with GPT-6.1 Sol.
 
 Bunch of bugs.
 
+## Windows distribution
+
+Run `npm run dist` to build the MSI installer and unpacked application (version and architecture follow the build):
+
+- `release/Markdoc-1.0.0-setup-x64.msi`: Windows installer with an installation wizard, desktop shortcut, and Start menu shortcut. It installs the unpacked application files once and runs the installed `Markdoc.exe` directly on subsequent launches.
+- `release/win-unpacked/`: application directory; keep this entire folder together if distributing it directly.
+
+Use the MSI for regular use to avoid the portable executable's extraction step on startup.
+Portable executables are no longer built.
+The MSI wizard displays `markdoc_license.txt` and requires accepting the license before continuing. The build generates the RTF agreement from this file automatically. The application and font license text files are included in every distribution.
+Preferences and recovery data are stored in the user's application data directory.
+
+Run `npm run dist:installer` to build only the MSI and unpacked application, or `npm run dist:nsis` for the alternative EXE installer.
+`npm run pack` creates only the unpacked application directory for local testing.
+
 # Font License
 
 ```

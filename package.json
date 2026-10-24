@@ -11,7 +11,9 @@
     "start": "npm run build && electron .",
     "test": "npm run build && node --test tests/*.test.cjs",
     "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder --win nsis"
+    "dist": "npm run build && electron-builder --win msi",
+    "dist:installer": "npm run build && electron-builder --win msi",
+    "dist:nsis": "npm run build && electron-builder --win nsis"
   },
   "build": {
     "appId": "com.markdoc.editor",
@@ -24,13 +26,26 @@
       "electron/**/*",
       "data/**/*",
       "locales.json",
+      "markdoc_license.txt",
+      "pretendard_license.txt",
+      "d2coding_license.txt",
       "package.json"
     ],
     "win": {
       "icon": "data/icon.ico",
-      "target": "nsis"
+      "target": ["msi"]
+    },
+    "msiProjectCreated": "electron/msi-license.cjs",
+    "msi": {
+      "artifactName": "${productName}-${version}-setup-${arch}.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": false
     },
     "nsis": {
+      "license": "markdoc_license.txt",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     }
@@ -44,7 +59,9 @@
     "@tiptap/pm": "^3.32.0",
     "@tiptap/starter-kit": "^3.32.0",
     "dompurify": "^3.4.17",
+    "katex": "^0.19.1",
     "marked": "^18.1.1",
+    "mathlive": "^0.111.1",
     "turndown": "^7.2.4",
     "turndown-plugin-gfm": "^1.0.2"
   },

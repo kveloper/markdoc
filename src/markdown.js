@@ -1,7 +1,9 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { mathMarkdown } from './math';
 
 marked.setOptions({ gfm: true, breaks: false });
+marked.use({ extensions: mathMarkdown });
 
 export function renderMarkdown(source, baseURL) {
   // YAML front matter is metadata, not a thematic break and Setext heading.

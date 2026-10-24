@@ -21,5 +21,6 @@ td p,th p {margin:0}
 ul[data-type=taskList] {list-style:none;padding-left:0}
 li[data-type=taskItem] {display:flex;gap:8px}li[data-type=taskItem]>div{flex:1}
 hr { border: 0; border-top: 1px solid #CCCCCC; }
+.math-formula{white-space:normal}.math-formula[data-display=true]{display:block;break-inside:avoid}
 @media screen { body { padding: 28px; max-width: 210mm; margin: auto; } }
 @media print { * { print-color-adjust: exact; } }

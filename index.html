@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' file:; img-src 'self' file: https: data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' file: data:; img-src 'self' file: https: data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Markdoc</title>
 </head>
 <body>
@@ -22,6 +22,7 @@
     <button data-action="underline" title="밑줄 Ctrl+U"><u>U</u></button>
     <button data-action="strike" title="취소선"><s>S</s></button>
     <button data-action="table">Table</button>
+    <button data-action="math" title="수식 입력기">수식</button>
     <span id="table-tools" hidden><button data-action="addRowAfter">행 추가</button><button data-action="addColumnAfter">열 추가</button><button data-action="deleteRow">행 삭제</button><button data-action="deleteColumn">열 삭제</button><button data-action="deleteTable">표 삭제</button></span>
     <button data-action="image" title="이미지 삽입" aria-label="이미지 삽입">🖼️</button>
     <button data-action="codeblock">Code Bloack</button><button data-action="code">Inline Code</button>
@@ -46,5 +47,15 @@
   <dialog id="image-dialog"><form method="dialog"><h2>이미지 삽입</h2><button value="absolute" formnovalidate>절대경로로 파일 선택…</button><p>또는 문서 위치를 기준으로 상대경로를 입력하세요.</p><label for="image-relative">상대경로</label><input id="image-relative" type="text" placeholder="./images/photo.png" required><p>상대경로를 사용하려면 먼저 문서를 저장하세요. 입력한 경로는 저장 시 유지됩니다.</p><div class="dialog-actions"><button value="cancel" formnovalidate>취소</button><button value="relative">상대경로로 삽입</button></div></form></dialog>
   <dialog id="link-dialog"><form method="dialog"><h2>링크</h2><label>주소 <input id="link-url" type="url" placeholder="https://example.com" required></label><div class="dialog-actions"><button value="cancel" formnovalidate>취소</button><button value="insert">적용</button></div></form></dialog>
   <script type="module" src="/src/renderer.js"></script>
+  <dialog id="math-dialog" aria-labelledby="math-title"><form method="dialog">
+    <h2 id="math-title">수식 입력기</h2>
+    <div class="math-history"><button id="math-undo" type="button" title="Ctrl+Z">되돌리기</button><button id="math-redo" type="button" title="Ctrl+Y">다시 실행</button></div>
+    <div id="math-elements"></div>
+    <label>미리보기</label><div id="math-preview" aria-live="polite"></div>
+    <label for="math-tex">TeX 구문</label><textarea id="math-tex" rows="4" spellcheck="false"></textarea>
+    <label class="math-mode"><input id="math-display" type="checkbox" checked> <span>독립 수식</span></label>
+    <p id="math-error" role="status"></p><p>수식을 클릭하면 직접 편집할 수 있습니다.</p>
+    <div class="dialog-actions"><button value="cancel" formnovalidate>취소</button><button id="math-insert" value="insert">입력</button></div>
+  </form></dialog>
 </body>
 </html>

@@ -140,11 +140,12 @@ async function printDocument(mode, markup) {
   }
   const fontURL = name => pathToFileURL(path.join(ROOT, 'data', 'fonts', name)).href;
   const css = await fs.readFile(path.join(ROOT, 'dist', 'print.css'), 'utf8');
+  const mathCSS = (await fs.readFile(path.join(ROOT, 'dist', 'katex', 'katex.min.css'), 'utf8')).replace(/url\(fonts\//g, `url(${pathToFileURL(path.join(ROOT, 'dist', 'katex', 'fonts')).href}/`);
   const page = `<!doctype html><html lang="${prefs.language}"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src file:; img-src file: https: data:; script-src 'none'; object-src 'none'; base-uri 'none'"><title>Markdoc ${t('인쇄 문서')}</title><style>
     @font-face{font-family:PrintFace;src:url('${fontURL('Pretendard-Medium.otf')}');font-weight:400}
     @font-face{font-family:PrintFace;src:url('${fontURL('Pretendard-Bold.otf')}');font-weight:700}
     @font-face{font-family:CodeFace;src:url('${fontURL('D2Coding-Ver1.4.0-20261003.ttf')}');font-weight:400;font-style:normal}
-    ${css} ${typographyCSS(prefs.typography)} @page{size:${prefs.paper};margin:20mm}
+    ${css} ${mathCSS} ${typographyCSS(prefs.typography)} @page{size:${prefs.paper};margin:20mm}
   </style></head><body><article class="markdown-body">${markup}</article></body></html>`;
   const temporary = path.join(app.getPath('userData'), `print-${Date.now()}-${Math.random().toString(16).slice(2)}.html`);
   await fs.writeFile(temporary, page, 'utf8');
