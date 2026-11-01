@@ -53,6 +53,14 @@ test('WYSIWYG pages, Markdown roundtrip, explorer, counts, typography, image res
   assert.ok(await page.locator('.page-break').count()>0);
   const a4=await page.locator('.page-sheet').first().boundingBox();
   await page.selectOption('#paper','Letter');await expect.poll(()=>page.locator('.page-sheet').first().evaluate(n=>n.getBoundingClientRect().height)).toBeLessThan(a4.height);
+  await page.selectOption('#paper', 'none');
+  await expect(page.locator('.page-break')).toHaveCount(0);
+  await expect(page.locator('.page-sheet')).toHaveCount(0);
+  await expect(page.locator('.page-margin-mask')).toHaveCount(0);
+  assert.ok((await page.locator('#document-surface').boundingBox()).height > a4.height);
+  assert.equal(await page.locator('#document-surface').evaluate(n => getComputedStyle(n).backgroundColor), 'rgb(255, 255, 255)');
+  await page.selectOption('#paper', 'A4');
+  await expect.poll(() => page.locator('.page-sheet').count()).toBeGreaterThan(2);
   // Images are real document nodes, not a second preview.
   const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=400;c.height=200;return c.toDataURL().split(',')[1];});
   const image=path.join(folder,'image.png');await fs.writeFile(image,Buffer.from(png,'base64'));

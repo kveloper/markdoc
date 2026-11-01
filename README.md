@@ -2,6 +2,8 @@
 
 <img src="./data/markdoc.png" width="142" height="142" />
 
+<img src="./screenshot.png" width="643" height="470" />
+
 Markdown WYSIWYG editor powered by Electron + Tiptap.
 
 Made with GPT-6.1 Sol.

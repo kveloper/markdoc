@@ -5,7 +5,7 @@
 :root[data-theme=dark]{--chrome:#222222;--chrome-text:#eeeeee;--border:#454545;--desk:#121212;color-scheme:dark}
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden}body{display:flex;flex-direction:column;font:14px DocumentFace;background:var(--chrome);color:var(--chrome-text)}
 button,select,input{font:inherit}button,select{background:var(--chrome);color:var(--chrome-text);border:1px solid var(--border);border-radius:4px;padding:6px 9px}button{cursor:pointer}button:hover{filter:brightness(.94)}button.active{background:#dbeafe;color:#174ea6;border-color:#83a9de}button:disabled{cursor:default;opacity:.5}
-#toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:9px 12px;border-bottom:1px solid var(--border);flex:none}#toolbar label{display:flex;align-items:center;gap:5px}.separator{width:1px;height:24px;background:var(--border);margin:0 4px}
+#toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:3.75px;padding:6.75px 9px;border-bottom:1px solid var(--border);flex:none}#toolbar label{display:flex;align-items:center;gap:3.75px}.separator{width:1px;height:18px;background:var(--border);margin:0 3px}
 #workspace{display:flex;flex:1;min-height:0}#explorer{width:225px;flex:none;overflow:auto;background:var(--chrome);border-right:1px solid var(--border);padding:10px 8px}#explorer[hidden]{display:none}.explorer-actions{display:flex;gap:5px}.explorer-actions button{font-size:12px}#folder-name{font-weight:700;padding:14px 7px;overflow-wrap:anywhere}.tree-children{padding-left:15px}.tree-row button{display:block;width:100%;border:none;text-align:left;padding:5px 7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.directory-name{font-weight:700}.file-name:disabled{opacity:.48}
 #document-viewport{flex:1;min-width:0;overflow:auto;background:var(--desk);padding:28px;scrollbar-gutter:stable}#page-stack{position:relative;width:var(--page-width);margin:0 auto}#page-sheets{position:absolute;inset:0;pointer-events:none}.page-sheet{position:absolute;left:0;width:var(--page-width);height:var(--page-height);background:#ffffff;box-shadow:0 2px 9px #0002}.page-number{position:absolute;bottom:20px;left:0;width:100%;text-align:center;color:#999;font-size:10pt}
 #document-surface{position:relative;width:var(--page-width);padding:var(--page-margin);color:#000000;color-scheme:light}#editor{width:100%}.document-body{outline:none;font:var(--body)/var(--lineHeight) DocumentFace;color:#000;overflow-wrap:anywhere;white-space:pre-wrap;display:flow-root}.document-body>*{margin:0 0 10px}.document-body p{margin:0 0 10px}.document-body h1,.document-body h2,.document-body h3,.document-body h4,.document-body h5,.document-body h6{font-weight:700;line-height:var(--lineHeight);margin:0 0 12px}.document-body h1{font-size:var(--h1)}.document-body h2{font-size:var(--h2)}.document-body h3{font-size:var(--h3)}.document-body h4{font-size:var(--h4)}.document-body h5{font-size:var(--h5)}.document-body h6{font-size:var(--h6)}
@@ -30,10 +30,6 @@ math-field::part(virtual-keyboard-toggle),math-field::part(menu-toggle){display:
 #page-masks{position:absolute;inset:0;pointer-events:none;user-select:none;z-index:2}
 .page-margin-mask{position:absolute;left:0;width:var(--page-width);background:linear-gradient(to bottom,#fff 0 var(--page-margin),var(--desk) var(--page-margin) calc(var(--page-margin) + 24px),#fff calc(var(--page-margin) + 24px) 100%)}
 .page-number{z-index:3}
-#toolbar [data-action=h1]{font-size:22px}#toolbar [data-action=h2]{font-size:20px}#toolbar [data-action=h3]{font-size:18px}#toolbar [data-action=h4]{font-size:16px}#toolbar [data-action=h5]{font-size:14px}#toolbar [data-action=h6]{font-size:12px}
-#menubar{display:flex;flex:none;gap:2px;padding:3px 12px 0;background:var(--chrome);color:var(--chrome-text)}
-#menubar button{border:0;background:transparent;padding:5px 9px;border-radius:3px}
-#menubar button:hover,#menubar button:focus-visible{background:var(--desk);filter:none}
 #toolbar{background:var(--chrome)}
 :root{--paper:#fff;--ink:#000}
 :root[data-theme=dark]{--paper:#242424;--ink:#fff}
@@ -43,3 +39,20 @@ math-field::part(virtual-keyboard-toggle),math-field::part(menu-toggle){display:
 :root[data-theme=dark] .document-body pre,:root[data-theme=dark] .document-body code,:root[data-theme=dark] .document-body th{background:#252525}
 :root[data-theme=dark] .document-body a{color:#9ecbff}
 :root[data-theme=dark] .selectedCell{background:#29486e}
+
+#toolbar>button,#toolbar>select,.icon-select{height:27px;min-width:27px}
+#toolbar button,#toolbar select{font-size:10.5px;padding:4px 6px}
+#toolbar>button{display:inline-flex;align-items:center;justify-content:center;padding:4px}
+.toolbar-icon{width:16.5px;height:16.5px;object-fit:contain;pointer-events:none}
+.icon-dark{display:none}:root[data-theme=dark] .icon-light{display:none}:root[data-theme=dark] .icon-dark{display:block}
+#toolbar .icon-select{position:relative;display:inline-flex;align-items:center;justify-content:flex-start;width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;background:var(--chrome)}
+.dropdown-button::after,.icon-select::after,.heading-select::after{content:"";display:inline-block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;flex-shrink:0;pointer-events:none}
+.icon-select::after,.heading-select::after{position:absolute;right:6px;top:50%;transform:translateY(-50%)}
+.icon-select select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.icon-select:focus-within{outline:2px solid #4c8bf5;outline-offset:1px}
+#toolbar .heading-select{position:relative;display:inline-block;width:76px;height:27px;flex-shrink:0}
+#toolbar #heading{appearance:none;font-size:12px;width:100%;height:100%;padding:4px 24px 4px 8px;cursor:pointer}
+#toolbar [data-action=bold],#toolbar [data-action=italic],#toolbar [data-action=underline],#toolbar [data-action=strike]{font-size:16px;line-height:1}
+:root[data-paper=none] #document-surface{background:var(--paper);color:var(--ink);color-scheme:inherit;box-shadow:0 2px 9px #0002}
+
+#toolbar .dropdown-button{gap:5px;padding:4px 6px}

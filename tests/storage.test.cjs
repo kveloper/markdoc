@@ -6,6 +6,7 @@ const path = require('node:path');
 const { preferences, atomicWrite } = require('../electron/storage.cjs');
 
 test('Python settings migration and invalid settings normalization', () => {
+  assert.equal(preferences({ paper: 'none' }).paper, 'none');
   assert.equal(preferences({ language: 'en' }).language, 'en');
   assert.equal(preferences({ language: 'invalid' }).language, 'ko');
   assert.equal(preferences({ live_preview: false, preview_position: 'top' }).livePreview, false);

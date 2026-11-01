@@ -42,7 +42,7 @@ function remember(file) {
 async function save(as = false, automatic = false) {
   let target = document.path;
   if (as || !target) {
-    const result = await dialog.showSaveDialog(window, { title: t('Markdown 저장'), defaultPath: target || 'Untitled.md', filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }] });
+    const result = await dialog.showSaveDialog(window, { title: t('Markdown 저장'), defaultPath: target || t('제목 없음.md'), filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }] });
     if (result.canceled) return false;
     target = result.filePath;
   }
@@ -105,7 +105,7 @@ function buildMenu() {
       { type: 'separator' },
       { label: 'PDF로 저장…', click: command('pdf') },
       { label: '인쇄…', accelerator: 'CmdOrCtrl+P', click: command('print') },
-      { label: '인쇄 용지', submenu: ['A4', 'Letter'].map(paper => ({ label: paper, type: 'radio', checked: prefs.paper === paper, click: () => updatePreference('paper', paper) })) },
+      { label: '인쇄 용지', submenu: ['A4', 'Letter', 'none'].map(paper => ({ label: paper === 'none' ? '용지 없음' : paper, type: 'radio', checked: prefs.paper === paper, click: () => updatePreference('paper', paper) })) },
       { type: 'separator' }, { label: '종료', click: () => window.close() },
     ] },
     { label: '편집', submenu: [
@@ -118,11 +118,10 @@ function buildMenu() {
     { label: '설정', submenu: [
       { label: '다크 모드', type: 'checkbox', checked: prefs.dark, click: item => updatePreference('dark', item.checked) },
       { label: '자동 저장 (30초)', type: 'checkbox', checked: prefs.autosave, click: item => updatePreference('autosave', item.checked) },
-      { label: '파일 탐색기', type: 'checkbox', checked: prefs.explorerVisible, click: item => updatePreference('explorerVisible', item.checked) },
-      { label: '글자 크기 및 행간…', click: command('typography') },
+      { label: '화살표 자동 변환 (-> →)', type: 'checkbox', checked: prefs.autoArrow, click: item => updatePreference('autoArrow', item.checked) },
       { label: '언어', submenu: [{ label: '한국어', type: 'radio', checked: prefs.language === 'ko', click: () => updatePreference('language', 'ko') }, { label: 'English', type: 'radio', checked: prefs.language === 'en', click: () => updatePreference('language', 'en') }] },
     ] },
-  ])));
+  ]).map(entry => ({ ...entry, visible: false }))));
   window?.setMenuBarVisibility(false);
 }
 function secureWindow(target) {
@@ -145,14 +144,14 @@ async function printDocument(mode, markup) {
     @font-face{font-family:PrintFace;src:url('${fontURL('Pretendard-Medium.otf')}');font-weight:400}
     @font-face{font-family:PrintFace;src:url('${fontURL('Pretendard-Bold.otf')}');font-weight:700}
     @font-face{font-family:CodeFace;src:url('${fontURL('D2Coding-Ver1.4.0-20261003.ttf')}');font-weight:400;font-style:normal}
-    ${css} ${mathCSS} ${typographyCSS(prefs.typography)} @page{size:${prefs.paper};margin:20mm}
+    ${css} ${mathCSS} ${typographyCSS(prefs.typography)} @page{size:${prefs.paper === 'none' ? 'A4' : prefs.paper};margin:20mm}
   </style></head><body><article class="markdown-body">${markup}</article></body></html>`;
   const temporary = path.join(app.getPath('userData'), `print-${Date.now()}-${Math.random().toString(16).slice(2)}.html`);
   await fs.writeFile(temporary, page, 'utf8');
   const printWindow = new BrowserWindow({ show: false, width: 960, height: 850, title: `${t('인쇄 문서')} — ${prefs.paper}`, icon: path.join(ROOT, 'data', 'icon.ico'), webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } });
   printWindows.add(printWindow); secureWindow(printWindow);
   printWindow.on('closed', () => { printWindows.delete(printWindow); fs.rm(temporary, { force: true }).catch(() => {}); });
-  const options = { printBackground: true, pageSize: prefs.paper };
+  const options = { printBackground: true, pageSize: prefs.paper === 'none' ? 'A4' : prefs.paper };
   try {
     await printWindow.loadFile(temporary);
     await printWindow.webContents.executeJavaScript(`Promise.all([document.fonts.ready, ...Array.from(document.images, image => image.complete ? Promise.resolve() : new Promise(resolve => { image.onload = image.onerror = resolve; setTimeout(resolve, 8000); }))])`);
@@ -204,6 +203,12 @@ ipcMain.on('document:autosave', (event, text) => {
 });
 ipcMain.handle('document:action', (event, name, payload) => {
   if (!isMain(event)) throw new Error(t('잘못된 요청입니다.'));
+  if (name === 'file-command') {
+    const label = { new: '새 문서', open: '열기…', save: '저장', 'save-as': '다른 이름으로 저장…', print: '인쇄…' }[payload?.name];
+    if (!label) throw new Error(t('지원하지 않는 명령입니다.'));
+    Menu.getApplicationMenu()?.items[0]?.submenu?.items.find(item => item.label === t(label))?.click();
+    return;
+  }
   if (name === 'show-menu') {
     if (!Number.isInteger(payload?.index) || payload.index < 0 || payload.index > 2) return;
     const submenu = Menu.getApplicationMenu()?.items[payload.index]?.submenu;
@@ -216,6 +221,7 @@ ipcMain.handle('document:action', (event, name, payload) => {
     return { path: target, entries: entries.filter(item => !item.isSymbolicLink()).map(item => ({ name: item.name, path: path.join(target, item.name), directory: item.isDirectory(), markdown: item.isFile() && /\.md$/i.test(item.name) })).sort((a, b) => Number(b.directory) - Number(a.directory) || a.name.localeCompare(b.name, 'ko')) };
   })();
   if (name === 'set-preferences') {
+    for (const key of ['dark', 'autosave', 'autoArrow']) if (typeof payload?.[key] === 'boolean') prefs[key] = payload[key];
     if (payload?.paper) prefs.paper = payload.paper;
     if (payload?.typography) prefs.typography = payload.typography;
     if (typeof payload?.explorerVisible === 'boolean') prefs.explorerVisible = payload.explorerVisible;

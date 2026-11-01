@@ -15,10 +15,11 @@ function preferences(input = {}) {
   const position = input.previewPosition ?? input.preview_position;
   return {
     dark: typeof input.dark === 'boolean' ? input.dark : defaults.dark,
+    autoArrow: typeof input.autoArrow === 'boolean' ? input.autoArrow : true,
     autosave: typeof input.autosave === 'boolean' ? input.autosave : defaults.autosave,
     livePreview: typeof (input.livePreview ?? input.live_preview) === 'boolean' ? (input.livePreview ?? input.live_preview) : true,
     previewPosition: ['left', 'right', 'top', 'bottom'].includes(position) ? position : 'right',
-    paper: input.paper === 'Letter' ? 'Letter' : 'A4',
+    paper: ['Letter', 'none'].includes(input.paper) ? input.paper : 'A4',
     language: input.language === 'en' ? 'en' : 'ko',
     explorerVisible: input.explorerVisible !== false,
     explorerRoot: typeof input.explorerRoot === 'string' ? input.explorerRoot : null,

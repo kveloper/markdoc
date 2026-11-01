@@ -7,30 +7,28 @@
   <title>Markdoc</title>
 </head>
 <body>
-  <nav id="menubar" role="menubar" aria-label="메뉴 모음">
-    <button role="menuitem" aria-haspopup="menu" data-menu="0">파일</button>
-    <button role="menuitem" aria-haspopup="menu" data-menu="1">편집</button>
-    <button role="menuitem" aria-haspopup="menu" data-menu="2">설정</button>
-  </nav>
   <header id="toolbar" aria-label="문서 서식 도구 모음">
-    <button data-action="explorer" aria-label="파일 탐색기 열기/닫기" title="파일 탐색기 열기/닫기">📂</button>
+    <button data-action="explorer" data-icon="folder" aria-label="파일 탐색기 열기/닫기" title="파일 탐색기 열기/닫기"></button>
+    <button class="dropdown-button" data-menu="0" data-icon="save" aria-label="저장" title="저장" aria-haspopup="menu"></button>
+    <button class="dropdown-button" data-menu="2" data-icon="settings" aria-label="설정" title="설정" aria-haspopup="menu"></button>
+    <button data-action="undo" data-icon="undo" aria-label="되돌리기" title="되돌리기"></button>
+    <button data-action="redo" data-icon="redo" aria-label="다시 실행" title="다시 실행"></button>
     <span class="separator"></span>
-    <button data-action="h1">H1</button><button data-action="h2">H2</button><button data-action="h3">H3</button><button data-action="h4">H4</button><button data-action="h5">H5</button><button data-action="h6">H6</button>
-    <button data-action="paragraph">본문</button>
-    <button data-action="bold" title="볼드 Ctrl+B"><b>B</b></button>
-    <button data-action="italic" title="이탤릭 Ctrl+I"><i>I</i></button>
-    <button data-action="underline" title="밑줄 Ctrl+U"><u>U</u></button>
-    <button data-action="strike" title="취소선"><s>S</s></button>
-    <button data-action="table">Table</button>
-    <button data-action="math" title="수식 입력기">수식</button>
+    <label class="heading-select"><select id="heading" aria-label="헤더"><option value="paragraph">본문</option><option value="h1">H1</option><option value="h2">H2</option><option value="h3">H3</option><option value="h4">H4</option><option value="h5">H5</option><option value="h6">H6</option></select></label>
+    <button data-action="bold" title="볼드 Ctrl+B"><b>B</b></button><button data-action="italic" title="이탤릭 Ctrl+I"><i>I</i></button><button data-action="underline" title="밑줄 Ctrl+U"><u>U</u></button><button data-action="strike" title="취소선"><s>S</s></button>
+    <button data-action="table" data-icon="table" aria-label="표 삽입" title="표 삽입"></button>
+    <button data-action="math" data-icon="equation" aria-label="수식 입력기" title="수식 입력기"></button>
     <span id="table-tools" hidden><button data-action="addRowAfter">행 추가</button><button data-action="addColumnAfter">열 추가</button><button data-action="deleteRow">행 삭제</button><button data-action="deleteColumn">열 삭제</button><button data-action="deleteTable">표 삭제</button></span>
-    <button data-action="image" title="이미지 삽입" aria-label="이미지 삽입">🖼️</button>
-    <button data-action="codeblock">Code Bloack</button><button data-action="code">Inline Code</button>
-    <button data-action="bulletList">불릿</button><button data-action="orderedList">번호 목록</button><button data-action="taskList" aria-label="체크 목록" title="체크 목록">✅</button>
-    <button data-action="blockquote">인용</button><button data-action="horizontalRule">구분선</button><button data-action="link" aria-label="링크" title="링크">🔗</button>
-    <button data-action="undo">되돌리기</button><button data-action="redo">다시 실행</button>
-    <label>용지 <select id="paper"><option>A4</option><option>Letter</option></select></label>
-    <button data-action="typography">글자 크기·행간</button>
+    <label class="icon-select" data-icon="codeblock" title="코드"><select id="code-style" aria-label="코드"><option value="" hidden>코드</option><option value="codeblock">코드 블록</option><option value="code">인라인 코드</option></select></label>
+    <button data-action="image" data-icon="image" aria-label="이미지 삽입" title="이미지 삽입"></button>
+    <button data-action="bulletList" data-icon="bulletlist" aria-label="불릿" title="불릿"></button>
+    <button data-action="orderedList" data-icon="numberedlist" aria-label="번호 목록" title="번호 목록"></button>
+    <button data-action="taskList" data-icon="checkbox" aria-label="체크 목록" title="체크 목록"></button>
+    <button data-action="blockquote" data-icon="quote" aria-label="인용" title="인용"></button>
+    <button data-action="horizontalRule" data-icon="horizontalrule" aria-label="구분선" title="구분선"></button>
+    <button data-action="link" data-icon="link" aria-label="링크" title="링크"></button>
+    <label class="icon-select" data-icon="paper" title="용지"><select id="paper" aria-label="용지"><option>A4</option><option>Letter</option><option value="none">용지 없음</option></select></label>
+    <button data-action="typography" data-icon="font" aria-label="글자 크기·행간" title="글자 크기·행간"></button>
   </header>
   <main id="workspace">
     <aside id="explorer" aria-label="파일 탐색기">

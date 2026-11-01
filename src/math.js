@@ -9,7 +9,9 @@ MathfieldElement.soundsDirectory = null;
 function createMathfield() {
   const field = new MathfieldElement();
   field.mathVirtualKeyboardPolicy = 'manual';
-  field.setAttribute('aria-label', '수식 편집');
+  const label = () => field.setAttribute('aria-label', document.documentElement.lang === 'en' ? 'Edit equation' : '수식 편집');
+  label();
+  field.addEventListener('focus', label);
   return field;
 }
 

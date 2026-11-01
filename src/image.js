@@ -25,7 +25,7 @@ export function resizableImage(getPaper, translate = value => value) {
         const limit = () => {
           const page = paperMetrics(getPaper());
           const ratio = image.naturalWidth / image.naturalHeight || 1;
-          return Math.min(page.width - page.margin * 2, (page.height - page.margin * 2 - 12) * ratio);
+          return Math.min(page.width - page.margin * 2, (page.continuous ? Infinity : page.height - page.margin * 2 - 12) * ratio);
         };
         const render = () => {
           if (image.getAttribute('src') !== current.attrs.src) image.src = current.attrs.src;
@@ -33,7 +33,7 @@ export function resizableImage(getPaper, translate = value => value) {
           const width = current.attrs.width;
           dom.style.width = width ? (/^\d+(\.\d+)?%$/.test(String(width)) ? width : `${parseFloat(width)}px`) : '100%';
           dom.style.maxWidth = `${limit()}px`;
-          image.style.maxHeight = `${paperMetrics(getPaper()).height - paperMetrics(getPaper()).margin * 2 - 12}px`;
+          image.style.maxHeight = paperMetrics(getPaper()).continuous ? 'none' : `${paperMetrics(getPaper()).height - paperMetrics(getPaper()).margin * 2 - 12}px`;
         };
         const loaded = () => { render(); editor.view.dom.dispatchEvent(new Event('paginate')); };
         image.addEventListener('load', loaded); image.addEventListener('error', loaded);

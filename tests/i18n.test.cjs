@@ -4,7 +4,7 @@ const fs = require('node:fs/promises'), os = require('node:os'), path = require(
 const { _electron } = require('playwright');
 const { expect } = require('@playwright/test');
 
-test('folder emoji and live Korean/English UI switching preserve the document and persist', { timeout: 30000 }, async () => {
+test('folder labels and live Korean/English UI switching preserve the document and persist', { timeout: 30000 }, async () => {
  const folder = await fs.mkdtemp(path.join(os.tmpdir(), 'markdoc-i18n-'));
  const root = path.join(folder, 'files'); await fs.mkdir(path.join(root, '한글 폴더'), { recursive: true });
  await fs.writeFile(path.join(root, '한글 폴더', '문서.md'), '# 파일 이름 유지');
@@ -26,37 +26,38 @@ test('folder emoji and live Korean/English UI switching preserve the document an
  try {
   let page = await launch();
   assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMenuBarVisible()), false);
-  const chromeColors = () => page.evaluate(() => ['#menubar', '#toolbar'].map(selector => getComputedStyle(document.querySelector(selector)).backgroundColor));
-  assert.deepEqual(await chromeColors(), ['rgb(245, 245, 245)', 'rgb(245, 245, 245)']);
+  const chromeColors = () => page.evaluate(() => ['#toolbar'].map(selector => getComputedStyle(document.querySelector(selector)).backgroundColor));
+  assert.deepEqual(await chromeColors(), ['rgb(245, 245, 245)']);
   await app.evaluate(({ Menu }) => Menu.getApplicationMenu().items.find(i => i.label === '설정').submenu.items.find(i => i.label === '다크 모드').click());
-  await expect.poll(chromeColors).toEqual(['rgb(34, 34, 34)', 'rgb(34, 34, 34)']);
+  await expect.poll(chromeColors).toEqual(['rgb(34, 34, 34)']);
   await app.evaluate(({ Menu }) => Menu.getApplicationMenu().items.find(i => i.label === '설정').submenu.items.find(i => i.label === '다크 모드').click());
   await app.evaluate(({ Menu }) => { Menu.getApplicationMenu().items[0].submenu.popup = options => { global.markdocPopup = { x: options.x, y: options.y }; }; });
   await page.locator('[data-menu="0"]').click();
   await expect.poll(() => app.evaluate(() => global.markdocPopup)).toBeTruthy();
-  await expect(page.locator('.directory-name')).toHaveText('📁 한글 폴더');
-  await expect(page.locator('#folder-name')).toHaveText('📁 files');
+  await expect(page.locator('.directory-name')).toHaveText('한글 폴더');
+  await expect(page.locator('#folder-name')).toHaveText('files');
   await page.locator('.directory-name').click();
   await expect(page.locator('.file-name')).toHaveText('문서.md');
   await page.locator('.tiptap').click(); await page.keyboard.insertText('한글 English 문서');
   const before = await page.evaluate(() => window.markdoc.initial());
   await language('English');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(page.locator('#menubar button')).toHaveText(['File', 'Edit', 'Settings']);
+  await expect(page.locator('#menubar')).toHaveCount(0);
+  await expect(page.locator('[data-menu="0"]')).toHaveAttribute('title', 'Save');
+  await expect(page.locator('[data-menu="2"]')).toHaveAttribute('title', 'Settings');
   assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMenuBarVisible()), false);
-  await expect(page.locator('[data-action="explorer"]')).toHaveText('📂');
+  await expect(page.locator('[data-action="explorer"] img')).toHaveCount(2);
   await expect(page.locator('[data-action="explorer"]')).toHaveAttribute('aria-label', 'Toggle File Explorer');
-  await expect(page.locator('[data-action="link"]')).toHaveText('🔗');
+  await expect(page.locator('[data-action="link"] img')).toHaveCount(2);
   await expect(page.locator('[data-action="link"]')).toHaveAttribute('title', 'Link');
-  await expect(page.locator('[data-action="taskList"]')).toHaveText('✅');
+  await expect(page.locator('[data-action="taskList"] img')).toHaveCount(2);
   await expect(page.locator('[data-action="taskList"]')).toHaveAttribute('aria-label', 'Checklist');
-  const sizes = await page.locator('[data-action^="h"]').evaluateAll(nodes => nodes.filter(n => /^h[1-6]$/.test(n.dataset.action)).map(n => parseFloat(getComputedStyle(n).fontSize)));
-  assert.equal(sizes.length, 6); assert.ok(sizes.every((size, i) => i === 0 || size < sizes[i - 1]));
+  await expect(page.locator('#heading option')).toHaveText(['Body', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
   await expect(page.locator('#choose-folder')).toHaveText('Open Folder');
   await expect(page.locator('#statistics')).toContainText('Characters');
   await expect(page.locator('#statistics')).toContainText('Words');
   await expect(page.locator('[data-action="image"]')).toHaveAttribute('aria-label', 'Insert Image');
-  await expect(page.locator('.directory-name')).toHaveText('📁 한글 폴더');
+  await expect(page.locator('.directory-name')).toHaveText('한글 폴더');
   await expect(page.locator('.file-name')).toHaveText('문서.md');
   const after = await page.evaluate(() => window.markdoc.initial());
   assert.equal(after.text, before.text); assert.equal(after.dirty, before.dirty);

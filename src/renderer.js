@@ -1,4 +1,4 @@
-import { Editor, Extension } from '@tiptap/core';
+import { Editor, Extension, InputRule } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { TableKit } from '@tiptap/extension-table';
 import TaskList from '@tiptap/extension-task-list';
@@ -13,8 +13,18 @@ import { MathFormula, setupMathDialog, renderFormula } from './math';
 import './style.css';
 import translations from '../locales.json';
 
+const toolbarIcons = import.meta.glob('../data/icon_*/*.png', { eager: true, query: '?url', import: 'default' });
+for (const control of document.querySelectorAll('#toolbar [data-icon]')) {
+  for (const theme of ['light', 'dark']) {
+    const image = document.createElement('img');
+    image.src = toolbarIcons[`../data/icon_${theme}/${control.dataset.icon}.png`];
+    image.alt = ''; image.className = `toolbar-icon icon-${theme}`; image.draggable = false;
+    control.prepend(image);
+  }
+}
+
 const api = window.markdoc;
-let prefs = { language: 'ko', paper: 'A4', autosave: true, explorerVisible: true, typography: { body: 12, h1: 26, h2: 22, h3: 19, h4: 17, h5: 15, h6: 13, lineHeight: 1.7 } };
+let prefs = { language: 'ko', paper: 'A4', autosave: true, autoArrow: true, explorerVisible: true, typography: { body: 12, h1: 26, h2: 22, h3: 19, h4: 17, h5: 15, h6: 13, lineHeight: 1.7 } };
 const t = (key, values = {}) => (translations[prefs.language]?.[key] || key).replace(/\{(\w+)\}/g, (match, name) => values[name] ?? match);
 const uiText = [], uiAttributes = [];
 for (const region of document.querySelectorAll('#menubar,#toolbar,#explorer,#typography-dialog,#table-dialog,#link-dialog,#image-dialog,#math-dialog')) {
@@ -34,6 +44,7 @@ function translateUI() {
   for (const item of uiText) if (item.node.isConnected) item.node.textContent = item.before + t(item.key) + item.after;
   for (const item of uiAttributes) item.node.setAttribute(item.attribute, t(item.key));
   for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
+  for (const field of document.querySelectorAll('math-field')) field.setAttribute('aria-label', t('수식 편집'));
   editor.view.dom.setAttribute('aria-label', t('위지윅 문서'));
   editor.view.dom.dispatchEvent(new Event('ui-language'));
 }
@@ -46,16 +57,19 @@ for (const button of document.querySelectorAll('[data-menu]')) {
     api.action('show-menu', { index: Number(button.dataset.menu), x: Math.round(rect.left), y: Math.round(rect.bottom) });
   });
   button.addEventListener('keydown', event => {
-    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-    event.preventDefault();
-    const index = (Number(button.dataset.menu) + (event.key === 'ArrowRight' ? 1 : 2)) % 3;
-    document.querySelector(`[data-menu="${index}"]`).focus();
+    if (['ArrowDown', 'Enter', ' '].includes(event.key)) { event.preventDefault(); button.click(); }
+    if (['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+      event.preventDefault(); document.querySelector(`[data-menu="${button.dataset.menu === '0' ? '2' : '0'}"]`).focus();
+    }
   });
 }
 document.addEventListener('keydown', event => {
-  if (event.key === 'F10' && !event.shiftKey) {
-    event.preventDefault(); document.querySelector('[data-menu="0"]').focus();
+  if ((event.ctrlKey || event.metaKey) && !event.altKey) {
+    const key = event.key.toLowerCase();
+    const name = key === 's' ? (event.shiftKey ? 'save-as' : 'save') : !event.shiftKey ? { n: 'new', o: 'open', p: 'print' }[key] : null;
+    if (name) { event.preventDefault(); api.action('file-command', { name }).catch(error => { status.textContent = error.message; }); return; }
   }
+  if (event.key === 'F10' && !event.shiftKey) { event.preventDefault(); document.querySelector('[data-menu="0"]').focus(); }
 });
 const surface = document.querySelector('#document-surface');
 const sheets = document.querySelector('#page-sheets');
@@ -87,6 +101,12 @@ function updateStatistics() {
 function drawPages(count) {
   pageCount = count;
   const page = paperMetrics(prefs.paper);
+  if (prefs.paper === 'none') {
+    surface.style.minHeight = `${page.height}px`;
+    sheets.replaceChildren(); pageMasks.replaceChildren();
+    if (editor) updateStatistics();
+    return;
+  }
   const height = count * page.height + (count - 1) * PAGE_GAP;
   surface.style.minHeight = `${height}px`;
   if (sheets.children.length !== count) sheets.replaceChildren(...Array.from({ length: count }, (_, index) => {
@@ -110,6 +130,15 @@ const editor = new Editor({
   element: document.querySelector('#editor'),
   extensions: [
     MathFormula,
+    Extension.create({
+      name: 'automaticArrow',
+      addInputRules() {
+        return [new InputRule({ find: /->$/, handler: ({ state, range, chain }) => {
+          if (!prefs.autoArrow || state.selection.$from.parent.type.spec.code || (state.storedMarks || state.selection.$from.marks()).some(mark => mark.type.name === 'code')) return null;
+          chain().deleteRange(range).insertContent('→').run();
+        } })];
+      },
+    }),
     StarterKit.configure({ link: { openOnClick: false } }),
     Extension.create({
       name: 'frontMatter',
@@ -149,14 +178,17 @@ function paginate() { editor.view.dom.dispatchEvent(new Event('paginate')); }
 function applyPreferences(next) {
   const languageChanged = prefs.language !== next.language;
   prefs = next;
+  document.documentElement.dataset.autoArrow = String(next.autoArrow);
   translateUI();
   if (languageChanged) status.textContent = currentPath || t('새 문서 · Ctrl+S로 저장');
   document.documentElement.dataset.theme = next.dark ? 'dark' : 'light';
   document.querySelector('#explorer').hidden = !next.explorerVisible;
   document.querySelector('#paper').value = next.paper;
+  document.documentElement.dataset.paper = next.paper;
   const page = paperMetrics(next.paper);
   for (const [name, value] of Object.entries({ 'page-width': page.width, 'page-height': page.height, 'page-margin': page.margin })) document.documentElement.style.setProperty('--' + name, `${value}px`);
   for (const [name, value] of Object.entries(next.typography)) document.documentElement.style.setProperty('--' + name, name === 'lineHeight' ? String(value) : `${value}pt`);
+  updateToolbar();
   drawPages(pageCount); editor.view.dom.dispatchEvent(new Event('page-metrics')); paginate();
 }
 async function loadDocument(data) {
@@ -177,6 +209,11 @@ async function loadDocument(data) {
   status.textContent = data.path || t('새 문서 · Ctrl+S로 저장');
 }
 function updateToolbar() {
+  document.querySelector('#heading').value = editor.isActive('heading') ? `h${editor.getAttributes('heading').level}` : 'paragraph';
+  const codeStyle = document.querySelector('#code-style');
+  codeStyle.value = '';
+  codeStyle.options[0].textContent = editor.isActive('codeBlock') ? t('코드 블록') : editor.isActive('code') ? t('인라인 코드') : t('코드');
+  codeStyle.parentElement.classList.toggle('active', editor.isActive('codeBlock') || editor.isActive('code'));
   document.querySelector('#table-tools').hidden = !editor.isActive('table');
   for (const button of document.querySelectorAll('#toolbar [data-action]')) {
     const action = button.dataset.action;
@@ -225,7 +262,7 @@ async function command(name) {
       const image = await api.action(choice === 'absolute' ? 'pick-image' : 'relative-image', { path: document.querySelector('#image-relative').value });
       if (image) {
         const page = paperMetrics(prefs.paper), ratio = image.width / image.height;
-        const width = Math.min(image.width, page.width - page.margin * 2, (page.height - page.margin * 2 - 12) * ratio);
+        const width = Math.min(image.width, page.width - page.margin * 2, (page.continuous ? Infinity : page.height - page.margin * 2 - 12) * ratio);
         editor.chain().focus().setImage({ src: image.src, markdownSrc: image.markdownSrc || null, width: Math.round(width), height: Math.round(width / ratio) }).run();
       }
     } else if (name === 'link') {
@@ -244,6 +281,8 @@ async function command(name) {
 }
 document.querySelector('#toolbar').addEventListener('mousedown', event => { if (event.target.closest('button[data-action]')) event.preventDefault(); });
 document.querySelector('#toolbar').addEventListener('click', event => { const button = event.target.closest('[data-action]'); if (button) command(button.dataset.action); });
+document.querySelector('#heading').addEventListener('change', event => command(event.target.value));
+document.querySelector('#code-style').addEventListener('change', event => command(event.target.value));
 document.querySelector('#paper').addEventListener('change', event => api.action('set-preferences', { paper: event.target.value }));
 
 async function listDirectory(target, container) {
@@ -251,7 +290,7 @@ async function listDirectory(target, container) {
   container.replaceChildren();
   for (const entry of result.entries) {
     const row = document.createElement('div'); row.className = 'tree-row';
-    const button = document.createElement('button'); button.textContent = entry.directory ? `📁 ${entry.name}` : entry.name; button.title = entry.path;
+    const button = document.createElement('button'); button.textContent = entry.name; button.title = entry.path;
     button.className = entry.directory ? 'directory-name' : 'file-name';
     button.disabled = !entry.directory && !entry.markdown;
     button.setAttribute('role', 'treeitem');
@@ -276,7 +315,7 @@ async function listDirectory(target, container) {
 async function refreshFiles(root = explorerRoot) {
   try {
     explorerRoot = await listDirectory(root, document.querySelector('#file-tree'));
-    document.querySelector('#folder-name').textContent = `📁 ${explorerRoot.split(/[\\/]/).filter(Boolean).at(-1) || explorerRoot}`;
+    document.querySelector('#folder-name').textContent = explorerRoot.split(/[\\/]/).filter(Boolean).at(-1) || explorerRoot;
     document.querySelector('#folder-name').title = explorerRoot;
   } catch (error) { status.textContent = t('탐색기: {message}', { message: error.message }); }
 }

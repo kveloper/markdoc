@@ -6,7 +6,7 @@ export const paginationKey = new PluginKey('document-pages');
 export const MM = 96 / 25.4;
 export const PAGE_GAP = 24;
 export function paperMetrics(paper) {
-  return { width: (paper === 'Letter' ? 215.9 : 210) * MM, height: (paper === 'Letter' ? 279.4 : 297) * MM, margin: 20 * MM };
+  return { continuous: paper === 'none', width: (paper === 'Letter' ? 215.9 : 210) * MM, height: (paper === 'Letter' ? 279.4 : 297) * MM, margin: 20 * MM };
 }
 
 export function createPagination(getMetrics, onPages) {
@@ -70,7 +70,12 @@ export function createPagination(getMetrics, onPages) {
           function measure() {
             if (destroyed) return;
             if (view.composing) { frame = setTimeout(measure, 80); return; }
-            const { height, margin } = getMetrics();
+            const { height, margin, continuous } = getMetrics();
+            if (continuous) {
+              corrections.clear(); metricKey = '';
+              view.dom.querySelectorAll('.tableWrapper').forEach(element => { element.style.zoom = ''; });
+              applyPlan([]); onPages(1); return;
+            }
             const style = getComputedStyle(view.dom);
             const metrics = `${height}/${margin}/${style.width}/${style.fontSize}/${style.lineHeight}`;
             if (metrics !== metricKey) { corrections.clear(); metricKey = metrics; }
